@@ -4,6 +4,18 @@ use crate::tokens::{Base, Token, TokenKind};
 
 const EOF_CHAR: char = '\0';
 
+pub fn tokenize(input: &str) -> impl Iterator<Item = Token> + '_ {
+    let mut cursor = Cursor::from(input);
+    std::iter::from_fn(move || {
+        let token = cursor.advance_token();
+        if token.kind != TokenKind::Eof {
+            Some(token)
+        } else {
+            None
+        }
+    })
+}
+
 #[derive(Debug)]
 pub struct Cursor<'a> {
     remaining: usize,

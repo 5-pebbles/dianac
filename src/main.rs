@@ -1,3 +1,13 @@
+mod tokens;
+
+mod lexer;
+
+use crate::{lexer::tokenize, tokens::Token};
+
 fn main() {
-    println!("Hello, world!");
+    let program = include_str!("../examples/TEST.DIA");
+
+    let tokens: Vec<Token> = tokenize(&program).collect();
+
+    dbg!(tokens);
 }
