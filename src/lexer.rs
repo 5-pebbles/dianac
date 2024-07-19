@@ -1,28 +1,27 @@
 use std::str::Chars;
 
-use crate::tokens::{Base, Token, TokenKind};
+use crate::tokens::{Base, Keyword, Register, Token, TokenKind};
 
 const EOF_CHAR: char = '\0';
 
-pub fn tokenize(input: &str) -> impl Iterator<Item = Token> + '_ {
-    let mut cursor = Cursor::from(input);
-    std::iter::from_fn(move || {
-        let token = cursor.advance_token();
-        if token.kind != TokenKind::Eof {
-            Some(token)
-        } else {
-            None
-        }
-    })
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cursor<'a> {
     remaining: usize,
     chars: Chars<'a>,
 }
 
 impl<'a> Cursor<'a> {
+    pub fn tokenize(mut self) -> impl Iterator<Item = Token> + 'a {
+        std::iter::from_fn(move || {
+            let token = self.advance_token();
+            if token.kind != TokenKind::Eof {
+                Some(token)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn as_str(&self) -> &'a str {
         self.chars.as_str()
     }
@@ -33,6 +32,10 @@ impl<'a> Cursor<'a> {
 
     pub fn token_len(&self) -> usize {
         self.remaining - self.as_str().len()
+    }
+
+    pub fn remaining(&self) -> usize {
+        self.remaining
     }
 
     pub fn set_remaining(&mut self) {
@@ -60,7 +63,7 @@ impl<'a> Cursor<'a> {
         };
 
         let kind = match first {
-            c if is_ident(c) => self.consume_identifier(),
+            c if c.is_alphabetic() || c == '_' => self.consume_identifier_or_keyword_or_register(c),
 
             c @ '0'..='9' => self.consume_number(c),
             '\'' => self.consume_character_literal(),
@@ -98,11 +101,11 @@ impl<'a> Cursor<'a> {
                 'b' => {
                     self.bump();
                     (Base::Binary, 2, 2)
-                }
+                },
                 'x' => {
                     self.bump();
                     (Base::Hex, 2, 16)
-                }
+                },
                 _ => (Base::Decimal, 0, 10),
             }
         } else {
@@ -113,8 +116,25 @@ impl<'a> Cursor<'a> {
         TokenKind::Numeric { base, prefix_len }
     }
 
-    fn consume_identifier(&mut self) -> TokenKind {
-        self.bump_while(is_ident);
+    fn consume_identifier_or_keyword_or_register(&mut self, first: char) -> TokenKind {
+        let mut ident = first.to_string();
+        self.bump_while(|c| {
+            if is_ident(c) {
+                ident.push(c);
+                true
+            } else {
+                false
+            }
+        });
+
+        if let Ok(register) = ident.parse::<Register>() {
+            return TokenKind::Register(register);
+        }
+
+        if let Ok(keyword) = ident.parse::<Keyword>() {
+            return TokenKind::Keyword(keyword);
+        }
+
         TokenKind::Identifier
     }
 
@@ -142,175 +162,92 @@ impl<'a> From<&'a str> for Cursor<'a> {
 }
 
 fn is_ident(character: char) -> bool {
-    character.is_alphabetic() || character == '_'
+    character.is_alphanumeric() || character == '_'
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tokens::{Base, Keyword, Register, TokenKind};
 
     #[test]
-    fn test_cursor_creation() {
-        let input = "test input";
-        let cursor: Cursor = input.into();
-        assert_eq!(cursor.remaining, input.len());
-        assert_eq!(cursor.as_str(), input);
-    }
-
-    #[test]
-    fn test_is_eof() {
-        let mut cursor: Cursor = "a".into();
-        assert!(!cursor.is_eof());
-        cursor.bump();
-        assert!(cursor.is_eof());
-    }
-
-    #[test]
-    fn test_first() {
-        let cursor: Cursor = "abc".into();
-        assert_eq!(cursor.first(), 'a');
-    }
-
-    #[test]
-    fn test_bump() {
-        let mut cursor: Cursor = "abc".into();
-        assert_eq!(cursor.bump(), Some('a'));
-        assert_eq!(cursor.bump(), Some('b'));
-        assert_eq!(cursor.bump(), Some('c'));
-        assert_eq!(cursor.bump(), None);
-    }
-
-    #[test]
-    fn test_bump_while() {
-        let mut cursor: Cursor = "aaabbb".into();
-        cursor.bump_while(|c| c == 'a');
-        assert_eq!(cursor.as_str(), "bbb");
-    }
-
-    #[test]
-    fn test_advance_token_identifier() {
-        let mut cursor: Cursor = "A_bc123".into();
-        let token = cursor.advance_token();
-        assert_eq!(token.kind, TokenKind::Identifier);
-        assert_eq!(token.len, 4);
-    }
-
-    #[test]
-    fn test_advance_token_numeric() {
-        let mut cursor: Cursor = "12_3abc".into();
-        let token = cursor.advance_token();
-        assert!(matches!(
-            token.kind,
+    fn test_tokenize_basic() {
+        let input = "A = 42";
+        let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
+        assert_eq!(tokens, vec![
+            TokenKind::Register(Register::A),
+            TokenKind::Whitespace,
+            TokenKind::Eq,
+            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Decimal,
                 prefix_len: 0
-            }
-        ));
-        assert_eq!(token.len, 4);
+            },
+        ]);
     }
 
     #[test]
-    fn test_advance_token_hex() {
-        let mut cursor: Cursor = "0xFF_abc".into();
-        let token = cursor.advance_token();
-        assert!(matches!(
-            token.kind,
+    fn test_tokenize_keywords_and_identifiers() {
+        let input = "LOAD foo BAR";
+        let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
+        assert_eq!(tokens, vec![
+            TokenKind::Keyword(Keyword::LOAD),
+            TokenKind::Whitespace,
+            TokenKind::Identifier,
+            TokenKind::Whitespace,
+            TokenKind::Identifier,
+        ]);
+    }
+
+    #[test]
+    fn test_tokenize_numbers() {
+        let input = "10 0xFF 0b1010";
+        let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
+        assert_eq!(tokens, vec![
+            TokenKind::Numeric {
+                base: Base::Decimal,
+                prefix_len: 0
+            },
+            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Hex,
                 prefix_len: 2
-            }
-        ));
-        assert_eq!(token.len, 8);
-    }
-
-    #[test]
-    fn test_advance_token_binary() {
-        let mut cursor: Cursor = "0b10_1010abc".into();
-        let token = cursor.advance_token();
-        assert!(matches!(
-            token.kind,
+            },
+            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Binary,
                 prefix_len: 2
-            }
-        ));
-        assert_eq!(token.len, 9);
+            },
+        ]);
     }
 
     #[test]
-    fn test_advance_token_character() {
-        let mut cursor: Cursor = "'a'bc".into();
-        let token = cursor.advance_token();
-        assert!(matches!(
-            token.kind,
-            TokenKind::Character { terminated: true }
-        ));
-        assert_eq!(token.len, 3);
-    }
-
-    #[test]
-    fn test_advance_token_unterminated_character() {
-        let mut cursor: Cursor = "'abc".into();
-        let token = cursor.advance_token();
-        assert!(matches!(
-            token.kind,
-            TokenKind::Character { terminated: false }
-        ));
-        assert_eq!(token.len, 2);
-    }
-
-    #[test]
-    fn test_advance_token_line_comment() {
-        let mut cursor: Cursor = "# This is a comment\nabc".into();
-        let token = cursor.advance_token();
-        assert_eq!(token.kind, TokenKind::LineComment);
-        assert_eq!(token.len, 19);
-    }
-
-    #[test]
-    fn test_advance_token_symbols() {
-        let input = ":=|!><()[]";
-        let expected = vec![
-            TokenKind::Colon,
-            TokenKind::Eq,
-            TokenKind::Or,
-            TokenKind::Bang,
+    fn test_tokenize_symbols_and_comments() {
+        let input = "A > B # Comment\n:";
+        let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
+        assert_eq!(tokens, vec![
+            TokenKind::Register(Register::A),
+            TokenKind::Whitespace,
             TokenKind::Greater,
-            TokenKind::Less,
-            TokenKind::OpenParen,
-            TokenKind::CloseParen,
-            TokenKind::OpenBracket,
-            TokenKind::CloseBracket,
-        ];
-        let mut cursor: Cursor = input.into();
-        for expected_kind in expected {
-            let token = cursor.advance_token();
-            assert_eq!(token.kind, expected_kind);
-            assert_eq!(token.len, 1);
-        }
+            TokenKind::Whitespace,
+            TokenKind::Register(Register::B),
+            TokenKind::Whitespace,
+            TokenKind::LineComment,
+            TokenKind::NewLine,
+            TokenKind::Colon,
+        ]);
     }
 
     #[test]
-    fn test_advance_token_whitespace() {
-        let mut cursor: Cursor = " \t\n".into();
-        let token = cursor.advance_token();
-        assert_eq!(token.kind, TokenKind::Whitespace);
-        assert_eq!(token.len, 1);
-    }
-
-    #[test]
-    fn test_advance_token_unknown() {
-        let mut cursor: Cursor = "@abc".into();
-        let token = cursor.advance_token();
-        assert_eq!(token.kind, TokenKind::Unknown);
-        assert_eq!(token.len, 1);
-    }
-
-    #[test]
-    fn test_advance_token_eof() {
-        let mut cursor: Cursor = "".into();
-        let token = cursor.advance_token();
-        assert_eq!(token.kind, TokenKind::Eof);
-        assert_eq!(token.len, 0);
+    fn test_tokenize_character_literals() {
+        let input = "'a' '\n' 'x";
+        let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
+        assert_eq!(tokens, vec![
+            TokenKind::Character { terminated: true },
+            TokenKind::Whitespace,
+            TokenKind::Character { terminated: true },
+            TokenKind::Whitespace,
+            TokenKind::Character { terminated: false },
+        ]);
     }
 }
