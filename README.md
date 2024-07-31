@@ -106,7 +106,7 @@ If an instruction clobbers an unrelated register, it will select the first avail
 
 ## Instructions
 
-### NOR \<register\> \<register | immediate\>
+### `NOR (register) (register | immediate)`
 
 Performs a logical `NOR` on the provided values, storing the result in the first register.
 
@@ -131,7 +131,7 @@ NOR B 0b110101
 ```
 
 &nbsp;
-### PC \<register | immediate\> \<register | immediate\>
+### `PC (register | immediate) (register | immediate)`
 
 Jumps the program counter to the provided 12-bit address tuple.
 
@@ -152,7 +152,7 @@ PC A 0x1F
 ```
 
 &nbsp;
-### LOAD \<register | immediate\> \<register | immediate\>
+### `LOAD (register | immediate) (register | immediate)`
 
 Loads data from the provided 12-bit address tuple into register C.
 
@@ -173,7 +173,7 @@ LOAD A 0 # C = 10-11-11
 ```
 
 &nbsp;
-### STORE \<register | immediate\> \<register | immediate\>
+### `STORE (register | immediate) (register | immediate)`
 
 Stores the value in register C at the 12-bit address tuple.
 
