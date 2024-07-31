@@ -1,18 +1,20 @@
+use strum::{Display as EnumDisplay, EnumString};
+
 use crate::span::Span;
 
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
-    pub len: usize,
+    pub span: Span,
 }
 
 impl Token {
-    pub fn new(len: usize, kind: TokenKind) -> Self {
-        Self { len, kind }
+    pub fn new(span: Span, kind: TokenKind) -> Self {
+        Self { span, kind }
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, EnumDisplay)]
 pub enum TokenKind {
     // Multi Character
     /// "# THIS IS A LINE COMMENT"
@@ -25,7 +27,7 @@ pub enum TokenKind {
     Keyword(Keyword),
     /// "5" | "0b011101" | "0xD"
     Numeric { base: Base, prefix_len: usize },
-    /// "'Z'"Base
+    /// "'Z'"
     Character { terminated: bool },
 
     // Single (me too bitch) Character (oh... sorry)
@@ -62,14 +64,15 @@ pub enum TokenKind {
 }
 
 #[derive(Debug, PartialEq, EnumString, Clone)]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Keyword {
-    NOR,
-    PC,
-    LOAD,
-    STORE,
-    LABEL,
-    SET,
-    LIH,
+    Nor,
+    Pc,
+    Load,
+    Store,
+    Set,
+    Label,
+    Link,
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -1,12 +1,16 @@
 use std::str::Chars;
 
-use crate::tokens::{Base, Keyword, Register, Token, TokenKind};
+use crate::{
+    span::Span,
+    tokens::{Base, Keyword, Register, Token, TokenKind},
+};
 
 const EOF_CHAR: char = '\0';
 
 #[derive(Debug, Clone)]
 pub struct Cursor<'a> {
-    remaining: usize,
+    len: usize,
+    progress: usize,
     chars: Chars<'a>,
 }
 
@@ -30,16 +34,12 @@ impl<'a> Cursor<'a> {
         self.as_str().is_empty()
     }
 
-    pub fn token_len(&self) -> usize {
-        self.remaining - self.as_str().len()
+    pub fn token_span(&self) -> Span {
+        Span::new(self.progress, self.len - self.as_str().len())
     }
 
-    pub fn remaining(&self) -> usize {
-        self.remaining
-    }
-
-    pub fn set_remaining(&mut self) {
-        self.remaining = self.as_str().len()
+    pub fn set_progress(&mut self) {
+        self.progress = self.len - self.as_str().len()
     }
 
     pub fn first(&self) -> char {
@@ -59,7 +59,7 @@ impl<'a> Cursor<'a> {
     pub fn advance_token(&mut self) -> Token {
         let first = match self.bump() {
             Some(value) => value,
-            None => return Token::new(0, TokenKind::Eof),
+            None => return Token::new(self.token_span(), TokenKind::Eof),
         };
 
         let kind = match first {
@@ -81,13 +81,16 @@ impl<'a> Cursor<'a> {
             '[' => TokenKind::OpenBracket,
             ']' => TokenKind::CloseBracket,
 
-            c if c.is_whitespace() && c != '\n' => TokenKind::Whitespace,
+            c if c.is_whitespace() && c != '\n' => {
+                self.set_progress();
+                return self.advance_token();
+            },
             _ => TokenKind::Unknown,
         };
 
-        let len = self.token_len();
-        self.set_remaining();
-        Token::new(len, kind)
+        let span = self.token_span();
+        self.set_progress();
+        Token::new(span, kind)
     }
 
     fn consume_line_comment(&mut self) -> TokenKind {
@@ -155,7 +158,8 @@ impl<'a> Cursor<'a> {
 impl<'a> From<&'a str> for Cursor<'a> {
     fn from(value: &'a str) -> Self {
         Self {
-            remaining: value.len(),
+            len: value.len(),
+            progress: 0,
             chars: value.chars(),
         }
     }
@@ -191,7 +195,7 @@ mod tests {
         let input = "LOAD foo BAR";
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
-            TokenKind::Keyword(Keyword::LOAD),
+            TokenKind::Keyword(Keyword::Load),
             TokenKind::Whitespace,
             TokenKind::Identifier,
             TokenKind::Whitespace,
