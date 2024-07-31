@@ -32,8 +32,8 @@ LABEL LAST
 SET 0
 ```
 
-> [!Tip]
-> If you want to play around with this language, you should really read the CPUs [documentation](https://github.com/5-pebbles/diana-ii) first ;)
+If you want to play around with this language, you should really read the CPUs [documentation](https://github.com/5-pebbles/diana-ii) first ;)
+
 
 ## Installation
 
@@ -99,6 +99,9 @@ If an instruction clobbers an unrelated register, it will select the first avail
 **List of instructions and side effects:**
 
 - [NOR](#nor-register-register--immediate)
+- [PC](#pc-register--immediate-register--immediate)
+- [LOAD](#load-register--immediate-register--immediate)
+- [STORE](#store-register--immediate-register--immediate)
 
 
 ## Instructions
@@ -127,7 +130,7 @@ NOR B 0b110101
 11-01-01
 ```
 
-
+&nbsp;
 ### PC \<register | immediate\> \<register | immediate\>
 
 Jumps the program counter to the provided 12-bit address tuple.
@@ -148,7 +151,7 @@ PC A 0x1F
 00-11-11
 ```
 
-
+&nbsp;
 ### LOAD \<register | immediate\> \<register | immediate\>
 
 Loads data from the provided 12-bit address tuple into register C.
@@ -169,7 +172,7 @@ LOAD A 0 # C = 10-11-11
 00-00-00
 ```
 
-
+&nbsp;
 ### STORE \<register | immediate\> \<register | immediate\>
 
 Stores the value in register C at the 12-bit address tuple.
