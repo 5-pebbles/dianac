@@ -86,13 +86,13 @@ impl<'a> Immediate<'a> {
             Immediate::LabelP0(value, span) => u12_to_u6(
                 *symbol_table
                     .get(value)
-                    .ok_or_else(|| undefined_label_error(span.clone()))?,
+                    .ok_or_else(|| undefined_label_error(span.clone()))?
+                    >> 6,
             ),
             Immediate::LabelP1(value, span) => u12_to_u6(
                 *symbol_table
                     .get(value)
-                    .ok_or_else(|| undefined_label_error(span.clone()))?
-                    >> 6,
+                    .ok_or_else(|| undefined_label_error(span.clone()))?,
             ),
             Immediate::Not(value) => !value.flatten(symbol_table)?,
             Immediate::Or(first, second) => {
