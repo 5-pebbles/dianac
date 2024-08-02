@@ -1,8 +1,8 @@
 # Diana Compiled Language Reference Manual
 
-A simple compiled language written for the [Diana-II](https://github.com/5-pebbles/diana-ii) 6-bit minimal instruction set computer. This language is meant to aid development by providing all basic instructions not natively supported by the architecture.
+A simple compiled language written for the [Diana-II](https://github.com/5-pebbles/diana-ii) 6-bit minimal instruction set computer. This language was written to aid development by providing all basic instructions not natively supported by the architecture.
 
-This documentation is intended for programmers who are already familiar with other assembly like languages. You are also expected to have read the CPUs documentation which can be found [here](https://github.com/5-pebbles/diana-ii).
+The following documentation is intended for programmers who are already familiar with other assembly like languages. You are also expected to have read the CPUs documentation which can be found [here](https://github.com/5-pebbles/diana-ii).
 
 **Acknowledgments:** The following documentation is strongly inspired by the [Solaris x86
 assembly language reference manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
@@ -29,16 +29,16 @@ cargo install --path .
 
 ### Statements
 
-A DCL program consists of one or more files containing _statements_. A _statement_ consists of _tokens_ separated by whitespace and terminated by a newline character.
+A program consists of one or more files containing _statements_. A _statement_ consists of _tokens_ separated by whitespace and terminated by a newline character.
 
 ### Comments
 
-A _comment_ can reside on its own line or be appended to a statement.  The comment consists of an octothorp (#) followed by the text of the comment. A newline character terminates the comment.
+A _comment_ can reside on its own line or be appended to a statement.  The comment consists of an octothorp (#) followed by the text of the comment and a terminating newline character.
 
 ### Labels
 
 A _label_ can be placed before the beginning of a statement. During compilation the label is assigned the address of the following statement and can be used as a keyword operand.
-A label consists of the `LABEL` keyword followed by an _identifier_ labels are global in scope and appear in the files symbol table.
+A label consists of the `LAB` keyword followed by an _identifier_ labels are global in scope and appear in the files symbol table.
 
 ### Tokens
 
@@ -107,7 +107,7 @@ Keywords represent an instruction, set of instructions, or a directive. Operands
 
 ### Operands
 
-A keyword can have zero to three operands separated by whitespace characters. For instructions with a source and destination this language uses Intel's notation destination(lefthand) **<-** source(righthand).
+A keyword can have zero to three operands separated by whitespace characters. For instructions with a source and destination this language uses Intel's notation destination(lefthand) then source(righthand).
 
 There are 4 types of operands:
 
@@ -115,7 +115,7 @@ There are 4 types of operands:
 - **Register.** One of the three 6-bit general-purpose registers provided by the Diana-II architecture.
 - **Either.** An immediate or a register operand.
 - **Address.** A single 12-bit identifier or two a pair of whitespace separated 6-bit either operands.
-- **Conditional.** A pair of square brackets \[\] containing a pair of 6-bit operands separated by whitespace and one of the following comparison operators:
+- **Conditional.** A pair of square brackets \[ \] containing a pair of 6-bit operands separated by whitespace and one of the following comparison operators:
     |      |      |
     |------|------|
     |  ==  | Equal |
@@ -129,7 +129,7 @@ There are 4 types of operands:
 
 The Diana-II architecture uses 12-bit addressing. Labels can be split into two 6-bit immediate values by appending a colon followed by a 1 or 0. If a keyword requires an address it can be provided as two 6-bit values or a single 12-bit identifier: 
 
-- `LOAD MAIN` = `LOAD MAIN:0 MAIN:1`.
+- `LOD MAIN` = `LOD MAIN:0 MAIN:1`.
 
 
 ## Side Effects
@@ -177,13 +177,14 @@ These keywords simply load the corresponding address from the right and left rot
 | Keyword | Description | Notes |
 |---------|-------------|-------|
 | `ADD [reg] [eth]` | add | - |
-| `SADD [reg] [eth]` | saturated add | - |
+| `ADS [reg] [eth]` | saturated add | - |
 | `SUB [reg] [eth]` | subtract | - |
-| `SSUB [reg] [eth]` | saturate subtract | - |
+| `SBS [reg] [eth]` | saturated subtract | - |
 
 ### Memory Keywords
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
 | `LOD [add]` | Loads data from the address into **C** | - |
-| `STO [add]` | Stores the value in **C** at the address
+| `STO [add]` | Stores the value in **C** at the address | - |
+| `LAB [idn]` | Defines a label pointing to the next statement | - |
