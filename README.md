@@ -1,38 +1,11 @@
-# Diana Compiled Language .DCL
+# Diana Compiled Language Reference Manual
 
-A simple compiled language and emulator written for the [Diana-II](https://github.com/5-pebbles/diana-ii) custom CPU.
+A simple compiled language written for the [Diana-II](https://github.com/5-pebbles/diana-ii) 6-bit minimal instruction set computer. This language is meant to aid development by providing all basic instructions not natively supported by the architecture.
 
-**Example:**
-```
-# FIBONACCI SEQUENCE
-LABEL MAIN
-LOAD ITERATIONS
-LIH [C == 0] END
-SUB C 1
-STORE ITERATIONS
+This documentation is intended for programmers who are already familiar with other assembly like languages. You are also expected to have read the CPUs documentation which can be found [here](https://github.com/5-pebbles/diana-ii).
 
-LOAD LAST
-MOVE A C
-LOAD THIS
-STORE LAST
-SATADD C A
-STORE THIS
-
-PC MAIN
-
-LABEL END
-PC END
-
-LABEL ITERATIONS
-SET 5 # SET YOUR OWN VALUE BUT 9 IS THE MAX STORABLE IN 6 BITS
-
-LABEL THIS
-SET 1
-LABEL LAST
-SET 0
-```
-
-If you want to play around with this language, you should really read the CPUs [documentation](https://github.com/5-pebbles/diana-ii) first ;)
+**Acknowledgments:** The following documentation is strongly inspired by the [Solaris x86
+assembly language reference manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
 
 
 ## Installation
@@ -52,14 +25,55 @@ cargo install --path .
 ```
 
 
-## Language
+## Lexical Conventions
 
-This language is meant to aid development by providing all basic instructions not natively supported by the architecture. However, it does not contain any abstractions that could hurt performance.
+### Statements
 
+A DCL program consists of one or more files containing _statements_. A _statement_ consists of _tokens_ separated by whitespace and terminated by a newline character.
 
-**Character encoding:**
+### Comments
 
-There are a few characters that can be used as immediate values. Below is a table with each and its hexadecimal representation:
+A _comment_ can reside on its own line or be appended to a statement.  The comment consists of an octothorp (#) followed by the text of the comment. A newline character terminates the comment.
+
+### Labels
+
+A _label_ can be placed before the beginning of a statement. During compilation the label is assigned the address of the following statement and can be used as a keyword operand.
+A label consists of the `LABEL` keyword followed by an _identifier_ labels are global in scope and appear in the files symbol table.
+
+### Tokens
+
+There are 6 classes of tokens:
+
+- Identifiers
+- Keywords
+- Registers
+- Numerical constants
+- Character constants
+- Operators
+
+#### Identifiers
+
+An identifier is an arbitrarily-long sequence of letters, underscores, and digits. The first character must be letter or underscore. Uppercase and lowercase characters are equivalent.
+
+#### Keywords
+
+Keywords such as instruction mnemonics and directives are reserved and cannot be used as identifiers. For a list of keywords see the [Keyword Tables](#keyword-tables).
+
+#### Registers
+
+The Diana-II architecture provides three registers **\[A, B, C\]** these are reserved and can not be used as identifiers. Uppercase and lowercase characters are equivalent.
+
+#### Numerical Constants
+
+Numbers in the Diana-II architecture are unsigned 6-bit integers. These can be expressed in several bases:
+
+- **Decimal.** Decimal integers consist of one or more decimal digits (0–9).
+- **Binary.** Binary integers begin with “0b” or “0B” followed by zero or more binary digits (0, 1).
+- **Hexadecimal.** Hexadecimal integers begin with “0x” or “0X” followed by one or more hexadecimal digits (0–9, A–F). Hexadecimal digits can be either uppercase or lowercase.
+
+#### Character Constants
+
+A _character_ constant consists of a supported character enclosed in single quotes ('). A character will be converted to its numeric representation based on the table of supported characters bellow:
 
 |    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |  8  | 9 |   A   | B | C | D | E |  F  |
 |:--:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:---:|:-:|:-----:|:-:|:-:|:-:|:-:|:---:|
@@ -70,125 +84,106 @@ There are a few characters that can be used as immediate values. Below is a tabl
 
 If a lowercase character is used, it will be converted to its uppercase representation.
 
+#### Operators
 
-**Immediate expressions:**
+The compiler supports the following operators for use in expressions. Operators have no assigned precedence. Expressions can be grouped in parentheses () to establish precedence.
 
-Expressions within a parentheses block are evaluated at compile time. The not (**!**) operator is the one exception to this not requiring a block.
+|     |     |
+|-----|-----|
+|  +  | Addition |
+|  -  | Subtraction |
+|  *  | Multiplication |
+|  /  | Division |
+|  &  | Logical AND |
+|  \| | Logical OR |
+|  >> | Shift right |
+|  << | Shift left |
+|  %  | Modulo |
 
-- `(0b110000 | 0b000011)` = `0b110011`
-- `!0b110000` = `0b001111`
+
+## Keywords, Operands, and Addressing
+
+Keywords represent an instruction, set of instructions, or a directive. Operands are entities operated upon by the keyword. Addresses are the locations in memory of specified data.
+
+### Operands
+
+A keyword can have zero to three operands separated by whitespace characters. For instructions with a source and destination this language uses Intel's notation destination(lefthand) **<-** source(righthand).
+
+There are 4 types of operands:
+
+- **Immediate.** A 6-bit constant expression that evaluate to an inline value.
+- **Register.** One of the three 6-bit general-purpose registers provided by the Diana-II architecture.
+- **Either.** An immediate or a register operand.
+- **Address.** A single 12-bit identifier or two a pair of whitespace separated 6-bit either operands.
+- **Conditional.** A pair of square brackets \[\] containing a pair of 6-bit operands separated by whitespace and one of the following comparison operators:
+    |      |      |
+    |------|------|
+    |  ==  | Equal |
+    |  !=  | Not equal |
+    |  >   | Greater |
+    |  >=  | Greater or equal |
+    |  <   | Less |
+    |  <=  | Less or equal |
+
+### Addressing
+
+The Diana-II architecture uses 12-bit addressing. Labels can be split into two 6-bit immediate values by appending a colon followed by a 1 or 0. If a keyword requires an address it can be provided as two 6-bit values or a single 12-bit identifier: 
+
+- `LOAD MAIN` = `LOAD MAIN:0 MAIN:1`.
 
 
-**Address expansion:**
+## Side Effects
 
-An address tuple (\<register | immediate> \<register | immediate>) can be replaced with a raw address, e.g.
-
-- `PC MAIN:0 MAIN:1` = `PC MAIN`
-
-> [!Important]
-> This notation does not yet support immediate expressions.
-
-**Side effects:**
-
-If an instruction clobbers an unrelated register, it will select the first available in reverse alphabetical order, e.g.
+Any side effects will be listed in the notes of a keyword read each carefully. If a keyword clobbers an unrelated register, it will select the first available in reverse alphabetical order, e.g.
 
 - `XNOR C 0x27` will clobber **B**
 - `XNOR A 0x27` will clobber **C**
 
 
-**List of instructions and side effects:**
+## Keyword Tables
 
-- [NOR](#nor-register-register--immediate)
-- [PC](#pc-register--immediate-register--immediate)
-- [LOAD](#load-register--immediate-register--immediate)
-- [STORE](#store-register--immediate-register--immediate)
+Operands will be displayed in square brackets \[ \] using the following shorthand:
 
+- `[reg]` = **register**
+- `[imm]` = **immediate**
+- `[eth]` = **either**
+- `[add]` = **address**
+- `[con]` = **conditional**
 
-## Instructions
+### Logical Keywords
 
-### `NOR (register) (register | immediate)`
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `NOT [reg]` | bitwise logical NOT | - |
+| `AND [reg] [eth]` | bitwise logical AND | The second register is flipped; its value can be restored with a `NOT` operation. If an immediate value is used, it is flipped at compile time. |
+| `NAND [reg] [eth]` | bitwise logical NAND | The second register is flipped; its value can be restored with a `NOT` operation. If an immediate value is used, it is flipped at compile time. |
+| `OR [reg] [eth]` | bitwise logical OR | - |
+| `NOR [reg] [eth]` | bitwise logical NOR | - |
+| `NXOR [reg] [eth]` | bitwise logical NXOR | An extra register will be clobbered; this is true even if an immediate value is used. |
 
-Performs a logical `NOR` on the provided values, storing the result in the first register.
+### Shift and Rotate Keywords
 
-| p | q | NOR |
-|---|---|-----|
-| 1 | 1 |  0  |
-| 1 | 0 |  0  |
-| 0 | 1 |  0  |
-| 0 | 0 |  1  |
+These keywords simply load the corresponding address from the right and left rotate [lookup tables](https://github.com/5-pebbles/diana-ii#memory-layout).
 
-**Usage:**
-```
-NOR A B
-NOR B 0b110101
-```
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `ROL [reg]` | rotate left storing the value in **C**  | - |
+| `ROR [reg]` | rotate right storing the value in **C** | - |
+| `SHL [reg]` | shift left storing the value in **C**   | - |
+| `SHR [reg]` | shift right storing the value in **C**  | - |
 
-**Example:**
-```
-00-00-10
-00-01-11
-11-01-01
-```
+### Arithmetic Keywords
 
-&nbsp;
-### `PC (register | immediate) (register | immediate)`
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `ADD [reg] [eth]` | add | - |
+| `SADD [reg] [eth]` | saturated add | - |
+| `SUB [reg] [eth]` | subtract | - |
+| `SSUB [reg] [eth]` | saturate subtract | - |
 
-Jumps the program counter to the provided 12-bit address tuple.
+### Memory Keywords
 
-**Usage:**
-```
-PC MAIN
-LABEL MAIN
-PC A 0x1F
-```
-
-**Example:**
-```
-01-11-11
-00-00-00
-00-00-11
-01-00-11
-00-11-11
-```
-
-&nbsp;
-### `LOAD (register | immediate) (register | immediate)`
-
-Loads data from the provided 12-bit address tuple into register C.
-
-**Usage:**
-```
-LOAD VALUE # C = 10-00-11
-LABEL VALUE
-LOAD A 0 # C = 10-11-11
-```
-
-**Example:**
-```
-10-11-11
-00-00-00
-00-00-11
-10-00-11
-00-00-00
-```
-
-&nbsp;
-### `STORE (register | immediate) (register | immediate)`
-
-Stores the value in register C at the 12-bit address tuple.
-
-**Usage:**
-```
-STORE 0 3
-LABEL MAIN
-STORE C 0b011010 # This value is replaced, but its immidate value creates a loop
-```
-
-**Example:**
-```
-11-11-11
-00-00-00
-00-00-11
-11-10-11
-01-10-10
-```
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `LOD [add]` | Loads data from the address into **C** | - |
+| `STO [add]` | Stores the value in **C** at the address
