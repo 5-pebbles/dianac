@@ -167,10 +167,10 @@ These keywords simply load the corresponding address from the right and left rot
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
-| `ROL [reg]` | rotate left storing the value in **C**  | - |
-| `ROR [reg]` | rotate right storing the value in **C** | - |
-| `SHL [reg]` | shift left storing the value in **C**   | - |
-| `SHR [reg]` | shift right storing the value in **C**  | - |
+| `ROL [eth]` | rotate left storing the value in **C**  | - |
+| `ROR [eth]` | rotate right storing the value in **C** | - |
+| `SHL [eth]` | shift left storing the value in **C**   | - |
+| `SHR [eth]` | shift right storing the value in **C**  | - |
 
 ### Arithmetic Keywords
 
