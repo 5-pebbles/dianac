@@ -2,36 +2,26 @@ use std::collections::HashMap;
 
 use arbitrary_int::{u12, u6};
 
-use crate::{
+use crate::compilation::{
     diagnostic::Diagnostic,
     instruction::{Instruction, Operation, Register},
     ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
 };
 
-#[derive(Debug, Clone)]
-pub struct Assembly {
-    pub instructions: Vec<Instruction>,
-    pub diagnostics: Vec<Diagnostic>,
-}
-
 pub fn assemble<'a>(
     ir: impl IntoIterator<Item = &'a Ir<'a>>,
     symbol_table: &HashMap<&str, u12>,
-    diagnostics: Vec<Diagnostic>,
-) -> Assembly {
-    let mut assembly = Assembly {
-        instructions: Vec::new(),
-        diagnostics,
-    };
+) -> (Vec<Instruction>, Vec<Diagnostic>) {
+    let mut instructions = Vec::new();
+    let mut diagnostics = Vec::new();
 
-    for ir in ir.into_iter() {
-        match assemble_ir(&ir, &symbol_table) {
-            Ok(instructions) => assembly.instructions.extend(instructions),
-            Err(diagnostic) => assembly.diagnostics.push(diagnostic),
-        }
-    }
+    ir.into_iter()
+        .for_each(|ir| match assemble_ir(ir, &symbol_table) {
+            Ok(value) => instructions.extend(value),
+            Err(value) => diagnostics.push(value),
+        });
 
-    assembly
+    (instructions, diagnostics)
 }
 
 fn assemble_ir(ir: &Ir, symbol_table: &HashMap<&str, u12>) -> Result<Vec<Instruction>, Diagnostic> {
