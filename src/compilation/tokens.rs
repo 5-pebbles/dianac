@@ -81,8 +81,8 @@ pub enum Keyword {
     Mov,
     Lod,
     Sto,
-    Lab,
     Pc,
+    Lab,
 }
 
 #[derive(Debug, PartialEq, Clone)]

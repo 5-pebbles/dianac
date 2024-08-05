@@ -159,6 +159,7 @@ Operands will be displayed in square brackets \[ \] using the following shorthan
 | `NAND [reg] [eth]` | bitwise logical NAND | The second register is flipped; its value can be restored with a `NOT` operation. If an immediate value is used, it is flipped at compile time. |
 | `OR [reg] [eth]` | bitwise logical OR | - |
 | `NOR [reg] [eth]` | bitwise logical NOR | - |
+| `XOR [reg] [eth]` | bitwise logical XOR | An extra register will be clobbered; this is true even if an immediate value is used. |
 | `NXOR [reg] [eth]` | bitwise logical NXOR | An extra register will be clobbered; this is true even if an immediate value is used. |
 
 ### Shift and Rotate Keywords
@@ -176,15 +177,23 @@ These keywords simply load the corresponding address from the right and left rot
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
-| `ADD [reg] [eth]` | add | - |
-| `ADS [reg] [eth]` | saturated add | - |
-| `SUB [reg] [eth]` | subtract | - |
-| `SBS [reg] [eth]` | saturated subtract | - |
+| `ADD [reg] [eth]` | add | All registers will be clobbered; this is true even if an immediate value is used. |
+| `ADS [reg] [eth]` | saturated add | All registers will be clobbered; this is true even if an immediate value is used. |
+| `SUB [reg] [eth]` | subtract | All registers will be clobbered; this is true even if an immediate value is used. |
+| `SBS [reg] [eth]` | saturated subtract | All registers will be clobbered; this is true even if an immediate value is used. |
 
 ### Memory Keywords
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
-| `LOD [add]` | Loads data from the address into **C** | - |
-| `STO [add]` | Stores the value in **C** at the address | - |
-| `LAB [idn]` | Defines a label pointing to the next statement | - |
+| `SET [imm]` | compiles to raw value `[imm]` | - |
+| `MOV [reg] [eth]` | copy from second operand to first | - |
+| `LOD [add]` | load data from `[add]` into **C** | - |
+| `STO [add]` | stores data in **C** at `[add]` | - |
+
+### Jumps and Logic Keywords
+
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `PC [add]`  | set program counter to `[add]` | - |
+| `LAB [idn]` | define a label pointing to the next statement | - |
