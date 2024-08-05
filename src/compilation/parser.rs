@@ -4,6 +4,7 @@ use arbitrary_int::u6;
 
 use crate::compilation::{
     diagnostic::{DiagKind, DiagLevel, Diagnostic},
+    handlers,
     ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
     lexer::Cursor,
     span::Span,
@@ -61,48 +62,33 @@ impl<'a> Parser<'a> {
             }
         };
 
-        let parse_result = match keyword {
-            Keyword::Nor => self.handle_nor(),
-            Keyword::Pc => self.handle_pc(),
-            Keyword::Load => self.handle_load(),
-            Keyword::Store => self.handle_store(),
-            Keyword::Set => self.handle_set(),
-            Keyword::Label => self.handle_label(),
-            Keyword::Link => todo!(),
-            // The remaining keywords would better fit in a macro system, but I don't plan on adding one
+        let mut parse_helper = || -> Result<Vec<Ir>, Diagnostic> {
+            Ok(match keyword {
+                Keyword::Not => handlers::not(self.parse_register()?),
+                Keyword::And => handlers::and(self.parse_register()?, self.parse_either()?),
+                Keyword::Nand => handlers::nand(self.parse_register()?, self.parse_either()?),
+                Keyword::Or => handlers::or(self.parse_register()?, self.parse_either()?),
+                Keyword::Nor => handlers::nor(self.parse_register()?, self.parse_either()?),
+                Keyword::Xor => handlers::xor(self.parse_register()?, self.parse_either()?),
+                Keyword::Nxor => handlers::nxor(self.parse_register()?, self.parse_either()?),
+                Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
+                Keyword::Set => handlers::set(self.parse_immediate()?),
+                Keyword::Lod => handlers::lod(self.parse_address_tuple()?),
+                Keyword::Sto => handlers::sto(self.parse_address_tuple()?),
+                Keyword::Lab => {
+                    let (label, span) = self.parse_identifier()?;
+                    handlers::lab(label, span)
+                }
+                Keyword::Pc => handlers::pc(self.parse_address_tuple()?),
+            })
         };
 
-        match parse_result {
-            Ok(ir) => self.ir.push(ir),
+        match parse_helper() {
+            Ok(ir) => self.ir.extend(ir),
             Err(diagnostic) => self.diagnostics.push(diagnostic),
         };
 
         self.parse_end_of_line()
-    }
-
-    pub fn handle_nor(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        Ok(Ir::Nor(self.parse_register()?, self.parse_either()?))
-    }
-
-    pub fn handle_pc(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        Ok(Ir::Pc(self.parse_address_tuple()?))
-    }
-
-    pub fn handle_load(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        Ok(Ir::Load(self.parse_address_tuple()?))
-    }
-
-    pub fn handle_store(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        Ok(Ir::Store(self.parse_address_tuple()?))
-    }
-
-    pub fn handle_set(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        Ok(Ir::Set(self.parse_immediate()?))
-    }
-
-    pub fn handle_label(&mut self) -> Result<Ir<'a>, Diagnostic> {
-        let identifier = self.parse_identifier()?;
-        Ok(Ir::Label(identifier.0, identifier.1))
     }
 
     pub fn parse_identifier(&mut self) -> Result<(&'a str, Span), Diagnostic> {

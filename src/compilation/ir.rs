@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use arbitrary_int::{u12, u6};
+use strum::EnumIter;
 
 use crate::compilation::{
     diagnostic::{DiagKind, DiagLevel, Diagnostic},
@@ -51,7 +52,7 @@ impl<'a> Either<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum IrRegister {
     A,
     B,

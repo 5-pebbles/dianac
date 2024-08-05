@@ -66,13 +66,19 @@ pub enum TokenKind {
 #[derive(Debug, PartialEq, EnumString, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum Keyword {
+    Not,
+    And,
+    Nand,
+    Or,
     Nor,
-    Pc,
-    Load,
-    Store,
+    Xor,
+    Nxor,
     Set,
-    Label,
-    Link,
+    Mov,
+    Lod,
+    Sto,
+    Lab,
+    Pc,
 }
 
 #[derive(Debug, PartialEq, Clone)]

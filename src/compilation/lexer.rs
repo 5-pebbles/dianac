@@ -195,7 +195,7 @@ mod tests {
         let input = "LOAD foo BAR";
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
-            TokenKind::Keyword(Keyword::Load),
+            TokenKind::Keyword(Keyword::Lod),
             TokenKind::Whitespace,
             TokenKind::Identifier,
             TokenKind::Whitespace,

@@ -17,6 +17,7 @@ mod tokens;
 
 mod analyzer;
 mod assembler;
+mod handlers;
 mod lexer;
 mod parser;
 
