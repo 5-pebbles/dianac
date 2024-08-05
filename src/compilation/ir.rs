@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use arbitrary_int::{u12, u6};
 
-use crate::{
+use crate::compilation::{
     diagnostic::{DiagKind, DiagLevel, Diagnostic},
     span::Span,
 };

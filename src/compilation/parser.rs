@@ -2,7 +2,7 @@ use std::num::IntErrorKind;
 
 use arbitrary_int::u6;
 
-use crate::{
+use crate::compilation::{
     diagnostic::{DiagKind, DiagLevel, Diagnostic},
     ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
     lexer::Cursor,
@@ -50,6 +50,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn advance_ir(&mut self) {
+        // TODO move to next line on error
         let keyword = match self.cursor.advance_token() {
             match_token_kind!(TokenKind::LineComment) => return,
             match_token_kind!(TokenKind::Keyword(keyword)) => keyword,

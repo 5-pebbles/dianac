@@ -1,6 +1,6 @@
 use strum::{Display as EnumDisplay, EnumString};
 
-use crate::span::Span;
+use crate::compilation::span::Span;
 
 #[derive(Debug, Clone)]
 pub struct Token {

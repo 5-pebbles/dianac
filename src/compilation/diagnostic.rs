@@ -3,7 +3,7 @@ use std::{num::IntErrorKind, path::Path};
 use colored::{Color, Colorize};
 use strum::Display as EnumDisplay;
 
-use crate::{span::Span, tokens::TokenKind};
+use crate::compilation::{span::Span, tokens::TokenKind};
 
 pub fn emit_diagnostics(diagnostics: &Vec<Diagnostic>, raw: &str, path: &Path) {
     diagnostics

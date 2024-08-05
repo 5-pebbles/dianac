@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-use crate::{
+use crate::compilation::{
     span::Span,
     tokens::{Base, Keyword, Register, Token, TokenKind},
 };
