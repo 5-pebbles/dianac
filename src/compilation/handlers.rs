@@ -128,6 +128,44 @@ pub fn nxor(register: IrRegister, either: Either) -> Vec<Ir> {
         .build()
 }
 
+pub fn rol(either: Either) -> Vec<Ir> {
+    VecBuilder::new()
+        .push(Ir::Load(AddressTuple(
+            Either::Immediate(Immediate::Constant(u6::new(0b111110))),
+            either,
+        )))
+        .build()
+}
+
+pub fn ror(either: Either) -> Vec<Ir> {
+    VecBuilder::new()
+        .push(Ir::Load(AddressTuple(
+            Either::Immediate(Immediate::Constant(u6::new(0b111111))),
+            either,
+        )))
+        .build()
+}
+
+pub fn shl(either: Either) -> Vec<Ir> {
+    VecBuilder::new()
+        .extend(rol(either))
+        .extend(and(
+            IrRegister::A,
+            Either::Immediate(Immediate::Constant(u6::new(0b111110))),
+        ))
+        .build()
+}
+
+pub fn shr(either: Either) -> Vec<Ir> {
+    VecBuilder::new()
+        .extend(ror(either))
+        .extend(and(
+            IrRegister::A,
+            Either::Immediate(Immediate::Constant(u6::new(0b011111))),
+        ))
+        .build()
+}
+
 pub fn set(immediate: Immediate) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Set(immediate)).build()
 }
