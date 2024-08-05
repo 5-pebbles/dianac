@@ -53,7 +53,10 @@ impl<'a> Parser<'a> {
     pub fn advance_ir(&mut self) {
         // TODO move to next line on error
         let keyword = match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::LineComment) => return,
+            match_token_kind!(TokenKind::LineComment) => {
+                self.parse_end_of_line();
+                return;
+            }
             match_token_kind!(TokenKind::Keyword(keyword)) => keyword,
             token => {
                 self.diagnostics
