@@ -5,9 +5,15 @@ use strum::Display as EnumDisplay;
 
 use crate::compilation::{span::Span, tokens::TokenKind};
 
-pub fn emit_diagnostics(diagnostics: &Vec<Diagnostic>, raw: &str, path: &Path) {
+pub fn emit_diagnostics(
+    diagnostics: &Vec<Diagnostic>,
+    raw: &str,
+    path: &Path,
+    log_level: DiagLevel,
+) {
     diagnostics
         .into_iter()
+        .filter(|diag| diag.level <= log_level)
         .for_each(|diag| diag.emit(raw, path))
 }
 
@@ -44,10 +50,10 @@ impl Diagnostic {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, EnumDisplay)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, EnumDisplay)]
 pub enum DiagLevel {
-    Fatal,
-    Warning,
+    Fatal = 0,
+    Warning = 1,
 }
 
 impl DiagLevel {
