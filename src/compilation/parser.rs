@@ -182,7 +182,7 @@ impl<'a> Parser<'a> {
             Base::Hex => 16,
         };
 
-        let numeric = u6_from_str_radix(&self.raw[span.start + prefix_len + 1..span.end], radix)
+        let numeric = u6_from_str_radix(&self.raw[span.start + prefix_len..span.end], radix)
             .map_err(|e| Diagnostic {
                 level: DiagLevel::Fatal,
                 span: span.clone(),

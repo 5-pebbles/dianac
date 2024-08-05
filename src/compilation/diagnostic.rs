@@ -83,6 +83,9 @@ impl DiagKind {
             DiagKind::UnexpectedToken { found, expected } => {
                 format!("Expected `{expected}` found `{found}`")
             }
+            DiagKind::ParseImmediate(error) => {
+                format!("Error parsing value {:#?}", error)
+            }
             _ => todo!(),
         }
     }
