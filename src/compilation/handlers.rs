@@ -53,7 +53,7 @@ macro_rules! free_register {
 
         IrRegister::iter()
             .rev()
-            .find(|ir| used.contains(ir))
+            .find(|ir| !used.contains(ir))
             .unwrap()}
     };
 }
