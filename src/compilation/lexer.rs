@@ -84,7 +84,7 @@ impl<'a> Cursor<'a> {
             c if c.is_whitespace() && c != '\n' => {
                 self.set_progress();
                 return self.advance_token();
-            },
+            }
             _ => TokenKind::Unknown,
         };
 
@@ -101,14 +101,14 @@ impl<'a> Cursor<'a> {
     fn consume_number(&mut self, first: char) -> TokenKind {
         let (base, prefix_len, radix) = if first == '0' {
             match self.first() {
-                'b' => {
+                'b' | 'B' => {
                     self.bump();
                     (Base::Binary, 2, 2)
-                },
-                'x' => {
+                }
+                'x' | 'X' => {
                     self.bump();
                     (Base::Hex, 2, 16)
-                },
+                }
                 _ => (Base::Decimal, 0, 10),
             }
         } else {
