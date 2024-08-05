@@ -64,6 +64,7 @@ impl<'a> Parser<'a> {
 
         let mut parse_helper = || -> Result<Vec<Ir>, Diagnostic> {
             Ok(match keyword {
+                // Logic
                 Keyword::Not => handlers::not(self.parse_register()?),
                 Keyword::And => handlers::and(self.parse_register()?, self.parse_either()?),
                 Keyword::Nand => handlers::nand(self.parse_register()?, self.parse_either()?),
@@ -71,19 +72,22 @@ impl<'a> Parser<'a> {
                 Keyword::Nor => handlers::nor(self.parse_register()?, self.parse_either()?),
                 Keyword::Xor => handlers::xor(self.parse_register()?, self.parse_either()?),
                 Keyword::Nxor => handlers::nxor(self.parse_register()?, self.parse_either()?),
+                // Shift and Rotate
                 Keyword::Rol => handlers::rol(self.parse_either()?),
                 Keyword::Ror => handlers::ror(self.parse_either()?),
                 Keyword::Shl => handlers::shl(self.parse_either()?),
                 Keyword::Shr => handlers::shr(self.parse_either()?),
-                Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
+                // Memory
                 Keyword::Set => handlers::set(self.parse_immediate()?),
+                Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
                 Keyword::Lod => handlers::lod(self.parse_address_tuple()?),
                 Keyword::Sto => handlers::sto(self.parse_address_tuple()?),
+                // Jump
+                Keyword::Pc => handlers::pc(self.parse_address_tuple()?),
                 Keyword::Lab => {
                     let (label, span) = self.parse_identifier()?;
                     handlers::lab(label, span)
                 }
-                Keyword::Pc => handlers::pc(self.parse_address_tuple()?),
             })
         };
 

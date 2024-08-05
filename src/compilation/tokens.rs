@@ -66,6 +66,7 @@ pub enum TokenKind {
 #[derive(Debug, PartialEq, EnumString, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum Keyword {
+    // Logic
     Not,
     And,
     Nand,
@@ -73,14 +74,17 @@ pub enum Keyword {
     Nor,
     Xor,
     Nxor,
+    // Shift and Rotate
     Rol,
     Ror,
     Shl,
     Shr,
+    // Memory
     Set,
     Mov,
     Lod,
     Sto,
+    // Jump
     Pc,
     Lab,
 }

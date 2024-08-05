@@ -191,7 +191,7 @@ These keywords simply load the corresponding address from the right and left rot
 | `LOD [add]` | load data from `[add]` into **C** | - |
 | `STO [add]` | stores data in **C** at `[add]` | - |
 
-### Jumps and Logic Keywords
+### Jump Keywords
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
