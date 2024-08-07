@@ -1,5 +1,8 @@
 use std::{fs, path::Path};
 
+use arbitrary_int::u6;
+use colored::Colorize;
+
 use crate::errors::Error;
 
 use self::{
@@ -21,9 +24,7 @@ mod handlers;
 mod lexer;
 mod parser;
 
-mod instruction;
-
-pub fn compile_file(source: &Path, destination: &Path, quiet: bool) -> Result<(), Error> {
+pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error> {
     let code = fs::read_to_string(&source)?;
     let parser = Parser::from(code.as_str());
 
@@ -43,17 +44,47 @@ pub fn compile_file(source: &Path, destination: &Path, quiet: bool) -> Result<()
             .unwrap_or(DiagLevel::Warning),
     );
 
-    if !diagnostics.iter().any(|d| d.level == DiagLevel::Fatal) {
+    let (mut errors, mut warnings) = (0, 0);
+    diagnostics.into_iter().for_each(|d| match d.level {
+        DiagLevel::Fatal => errors += 1,
+        DiagLevel::Warning => warnings += 1,
+    });
+
+    let warning_plural = if warnings > 1 { "warnings" } else { "warning" };
+    let error_plural = if errors > 1 { "errors" } else { "error" };
+
+    if !quiet && warnings > 0 {
+        println!(
+            "{} generated {warnings} {warning_plural}",
+            format!("{}:", "warning".yellow()).bold(),
+        )
+    }
+    if errors > 0 {
+        println!(
+            "{} could not compile due to {errors} previous {error_plural}{}",
+            format!("{}:", "error".red()).bold(),
+            if warnings > 0 {
+                format!("; {warnings} {warning_plural} emitted")
+            } else {
+                "".to_string()
+            }
+        )
+    }
+
+    Ok(if errors == 0 {
+        Some(instructions.into_iter().map(|i| i.raw_value()).collect())
+    } else {
+        None
+    })
+}
+
+pub fn compile_to_file(source: &Path, destination: &Path, quiet: bool) -> Result<(), Error> {
+    if let Some(instructions) = compile_impl(source, quiet)? {
         fs::write(
             destination,
-            instructions
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<String>>()
-                .join(""),
+            instructions.iter().map(|i| i.value()).collect::<Vec<u8>>(),
         )?;
     }
-    // TODO make a failure message
 
     Ok(())
 }
