@@ -1,38 +1,74 @@
-// In this codebase, comments have two purposes:
-// 1. describe why something is done
-// 2. boost developer morale; people do better work when they are having fun (jokes are encouraged)
+use clap::{Parser as ArgParser, Subcommand};
+use std::path::PathBuf;
 
-#![allow(dead_code)]
 mod compilation;
+mod emulation;
 
 mod errors;
 mod instruction;
 
-use clap::Parser as ArgParser;
-use compilation::compile_file;
+use compilation::{compile_impl, compile_to_file};
+use emulation::{emulate_file, emulate_impl};
 use errors::Error;
-use std::path::PathBuf;
 
+/// An emulator, compiler, and interpreter for the Diana Compiled Language
 #[derive(ArgParser)]
 #[command(version, about)]
-struct Args {
-    source: PathBuf,
-    #[arg(short, long)]
-    destination: Option<PathBuf>,
-    #[arg(short, long)]
-    quiet: bool,
+#[command(propagate_version = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Interprate a program directly from source
+    Interpret {
+        /// An input file handle (can be /dev/stdin)
+        source: PathBuf,
+        /// Suppress all non-fatal diagnostics
+        #[arg(short, long)]
+        quiet: bool,
+    },
+    /// Emulate the execution from a binary
+    Emulate {
+        /// An input file handle (can be /dev/stdin)
+        source: PathBuf,
+    },
+    /// Compile a binary without execution
+    Compile {
+        /// An input file handle (can be /dev/stdin)
+        source: PathBuf,
+        /// File path to compiled binary
+        destination: Option<PathBuf>,
+        /// Suppress all non-fatal diagnostics
+        #[arg(short, long)]
+        quiet: bool,
+    },
 }
 
 fn main() -> Result<(), Error> {
-    let args = Args::parse();
+    let args = Cli::parse();
 
-    compile_file(
-        &args.source,
-        &args
-            .destination
-            .unwrap_or_else(|| args.source.with_extension("bin")),
-        args.quiet,
-    )?;
+    match args.command {
+        Command::Interpret { source, quiet } => {
+            emulate_impl(compile_impl(&source, quiet)?.unwrap());
+        }
+        Command::Emulate { source } => {
+            emulate_file(&source)?;
+        }
+        Command::Compile {
+            source,
+            destination,
+            quiet,
+        } => {
+            compile_to_file(
+                &source,
+                &destination.unwrap_or_else(|| source.with_extension("")),
+                quiet,
+            )?;
+        }
+    }
 
     Ok(())
 }
