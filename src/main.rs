@@ -6,6 +6,7 @@
 mod compilation;
 
 mod errors;
+mod instruction;
 
 use clap::Parser as ArgParser;
 use compilation::compile_file;

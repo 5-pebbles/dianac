@@ -2,10 +2,12 @@ use std::collections::HashMap;
 
 use arbitrary_int::{u12, u6};
 
-use crate::compilation::{
-    diagnostic::Diagnostic,
+use crate::{
+    compilation::{
+        diagnostic::Diagnostic,
+        ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
+    },
     instruction::{Instruction, Operation, Register},
-    ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
 };
 
 pub fn assemble<'a>(
