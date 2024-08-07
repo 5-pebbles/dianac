@@ -5,18 +5,6 @@ use strum::Display as EnumDisplay;
 
 use crate::compilation::{span::Span, tokens::TokenKind};
 
-pub fn emit_diagnostics(
-    diagnostics: &Vec<Diagnostic>,
-    raw: &str,
-    path: &Path,
-    log_level: DiagLevel,
-) {
-    diagnostics
-        .into_iter()
-        .filter(|diag| diag.level <= log_level)
-        .for_each(|diag| diag.emit(raw, path))
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Diagnostic {
     pub level: DiagLevel,
@@ -83,10 +71,7 @@ impl DiagKind {
             DiagKind::UnexpectedToken { found, expected } => {
                 format!("Expected `{expected}` found `{found}`")
             }
-            DiagKind::ParseImmediate(error) => {
-                format!("Error parsing value {:#?}", error)
-            }
-            _ => todo!(),
+            diag => format!("????????: {:#?}", diag),
         }
     }
 }

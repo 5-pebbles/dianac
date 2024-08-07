@@ -1,16 +1,11 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, time::Instant};
 
 use arbitrary_int::u6;
 use colored::Colorize;
 
 use crate::errors::Error;
 
-use self::{
-    analyzer::analyzer,
-    assembler::assemble,
-    diagnostic::{emit_diagnostics, DiagLevel},
-    parser::Parser,
-};
+use self::{analyzer::analyzer, assembler::assemble, diagnostic::DiagLevel, parser::Parser};
 
 mod diagnostic;
 mod span;
@@ -25,6 +20,11 @@ mod lexer;
 mod parser;
 
 pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error> {
+    let absolute = fs::canonicalize(source)?.to_string_lossy().into_owned();
+    println!("   {} `{absolute}`", "Compiling".green().bold(),);
+
+    let start_time = Instant::now();
+
     let code = fs::read_to_string(&source)?;
     let parser = Parser::from(code.as_str());
 
@@ -33,25 +33,27 @@ pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error
     diagnostics.extend(more_diagnostics);
 
     let (instructions, more_diagnostics) = assemble(&ir, &symbol_table);
+    let elapsed_time = start_time.elapsed();
+
     diagnostics.extend(more_diagnostics);
 
-    emit_diagnostics(
-        &diagnostics,
-        code.as_str(),
-        &source,
-        quiet
-            .then_some(DiagLevel::Fatal)
-            .unwrap_or(DiagLevel::Warning),
-    );
+    let log_level = quiet
+        .then_some(DiagLevel::Fatal)
+        .unwrap_or(DiagLevel::Warning);
 
     let (mut errors, mut warnings) = (0, 0);
-    diagnostics.into_iter().for_each(|d| match d.level {
-        DiagLevel::Fatal => errors += 1,
-        DiagLevel::Warning => warnings += 1,
-    });
+    diagnostics
+        .into_iter()
+        .filter(|diag| diag.level <= log_level)
+        .for_each(|diag| {
+            diag.emit(&code, source);
+            match diag.level {
+                DiagLevel::Fatal => errors += 1,
+                DiagLevel::Warning => warnings += 1,
+            }
+        });
 
     let warning_plural = if warnings > 1 { "warnings" } else { "warning" };
-    let error_plural = if errors > 1 { "errors" } else { "error" };
 
     if !quiet && warnings > 0 {
         println!(
@@ -59,7 +61,17 @@ pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error
             format!("{}:", "warning".yellow()).bold(),
         )
     }
-    if errors > 0 {
+
+    Ok(if errors == 0 {
+        println!(
+            "    {} `{absolute}` in {:?}",
+            "Finished".green().bold(),
+            elapsed_time,
+        );
+        Some(instructions.into_iter().map(|i| i.raw_value()).collect())
+    } else {
+        let error_plural = if errors > 1 { "errors" } else { "error" };
+
         println!(
             "{} could not compile due to {errors} previous {error_plural}{}",
             format!("{}:", "error".red()).bold(),
@@ -68,12 +80,7 @@ pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error
             } else {
                 "".to_string()
             }
-        )
-    }
-
-    Ok(if errors == 0 {
-        Some(instructions.into_iter().map(|i| i.raw_value()).collect())
-    } else {
+        );
         None
     })
 }
