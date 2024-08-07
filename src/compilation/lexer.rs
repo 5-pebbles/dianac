@@ -172,7 +172,6 @@ fn is_ident(character: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tokens::{Base, Keyword, Register, TokenKind};
 
     #[test]
     fn test_tokenize_basic() {
@@ -180,9 +179,7 @@ mod tests {
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
             TokenKind::Register(Register::A),
-            TokenKind::Whitespace,
             TokenKind::Eq,
-            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Decimal,
                 prefix_len: 0
@@ -192,13 +189,11 @@ mod tests {
 
     #[test]
     fn test_tokenize_keywords_and_identifiers() {
-        let input = "LOAD foo BAR";
+        let input = "LOD foo BAR";
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
             TokenKind::Keyword(Keyword::Lod),
-            TokenKind::Whitespace,
             TokenKind::Identifier,
-            TokenKind::Whitespace,
             TokenKind::Identifier,
         ]);
     }
@@ -212,12 +207,10 @@ mod tests {
                 base: Base::Decimal,
                 prefix_len: 0
             },
-            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Hex,
                 prefix_len: 2
             },
-            TokenKind::Whitespace,
             TokenKind::Numeric {
                 base: Base::Binary,
                 prefix_len: 2
@@ -231,11 +224,8 @@ mod tests {
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
             TokenKind::Register(Register::A),
-            TokenKind::Whitespace,
             TokenKind::Greater,
-            TokenKind::Whitespace,
             TokenKind::Register(Register::B),
-            TokenKind::Whitespace,
             TokenKind::LineComment,
             TokenKind::NewLine,
             TokenKind::Colon,
@@ -248,9 +238,7 @@ mod tests {
         let tokens: Vec<TokenKind> = Cursor::from(input).tokenize().map(|t| t.kind).collect();
         assert_eq!(tokens, vec![
             TokenKind::Character { terminated: true },
-            TokenKind::Whitespace,
             TokenKind::Character { terminated: true },
-            TokenKind::Whitespace,
             TokenKind::Character { terminated: false },
         ]);
     }

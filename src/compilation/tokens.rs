@@ -19,8 +19,6 @@ pub enum TokenKind {
     // Multi Character
     /// "# THIS IS A LINE COMMENT"
     LineComment,
-    /// Any whitespace character sequence except "\n"
-    Whitespace,
     /// Labels
     Identifier,
     /// NOR | LOAD
