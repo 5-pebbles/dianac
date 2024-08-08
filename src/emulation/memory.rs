@@ -31,8 +31,8 @@ impl Memory {
             0x000..=0xF3D => self.ram[as_usize],
             0xF3E => self.program_counter.as_tuple().0,
             0xF3F => self.program_counter.as_tuple().1,
-            0xF80..=0xFBF => address.1.wrapping_shl(1),
-            0xFC0..=0xFFF => address.1.wrapping_shr(1),
+            0xF80..=0xFBF => address.1.rotate_left(1),
+            0xFC0..=0xFFF => address.1.rotate_left(1),
             _ => unreachable!(),
         }
     }
