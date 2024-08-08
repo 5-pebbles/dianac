@@ -1,8 +1,8 @@
 # Diana Compiled Language Reference Manual
 
-A simple compiled language written for the [Diana-II](https://github.com/5-pebbles/diana-ii) 6-bit minimal instruction set computer. This language was written to aid development by providing all basic instructions not natively supported by the architecture.
+A simple compiled language written for the [Diana-II](#diana-ii-specifications) 6-bit computer. This language was written to aid development by providing all basic instructions not natively supported by the architecture.
 
-The following documentation is intended for programmers who are already familiar with other assembly like languages. You are also expected to have read the CPUs documentation which can be found [here](https://github.com/5-pebbles/diana-ii).
+The following documentation is intended for programmers who are already familiar with other assembly like languages.
 
 **Acknowledgments:** The following documentation is strongly inspired by the [Solaris x86
 assembly language reference manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
@@ -23,6 +23,73 @@ git clone https://github.com/5-pebbles/dianac.git
 cd dianac
 cargo install --path .
 ```
+
+
+## Diana II Specifications
+
+The Diana II is 6-bit minimal instruction set computer designed around using `NOR` as a universal logic gate.
+
+- **byte size:** 6-bits.
+
+- **endianness:** little-endian.
+
+- **address size:** 12-bits (two 6-bit operands, first is higher order).
+
+- **unique instructions:** 8.
+
+
+### Instructions
+
+| Binary |      Instruction     |  Description  |
+|--------|----------------------|---------------|
+|   00   |  `NOR [val] [val]`   |  Performs a negated OR on the first operand. |
+|   01   |  `PC [val] [val]`    |  Sets the program counter to the address `[val, val]`. |
+|   10   |  `LOAD [val] [val]`  |  Loads data from the address `[val, val]` into `C`. |
+|   11   |  `STORE [val] [val]` |  Stores the value in `C` at the address `[val, val]`. |
+
+**Layout:**
+
+Each instruction is 6 bits in the format `[XX][YY][ZZ]`:
+
+- **X:** 2-bit instruction identifier.
+- **Y:** 2-bit first operand identifier.
+- **Z:** 2-bit second operand identifier.
+
+The first operand of NOR can't be immediate, so that allows another four instructions:
+
+| Binary |   Instruction   | Description |
+|--------|-----------------|-------------|
+| 001100 | `---` | Reserved for future use. |
+| 001101 | `---` | Reserved for future use. |
+| 001110 | `---` | Reserved for future use. |
+| 001111 | `HLT` | Halts the CPU until the next interrupt. |
+
+
+> [!Note]
+> Instructions and operands are uppercase because my 6-bit character encoding does not support lowercase...
+
+
+### Operands
+
+| Binary | Name | Description |
+|--------|------|-------------|
+| **00** |   A  | General purpose register. |
+| **01** |   B  | General purpose register. |
+| **10** |   C  | General purpose register. |
+| **11** |   -  | Read next instruction as a value. |
+
+
+### Memory Layout
+
+There are a total of 4096 unique address each containing 6 bits.
+
+|     Address     |  Description  |
+|-----------------|---------------|
+| `0x000..=0xEFF` | General purpose RAM. |
+| `0xEFF..=0xF3D` | Reserved for future use. |
+| `0xF3E..=0xF3F` | Program Counter(PC) (ROM). |
+| `0xF80..=0xFBF` | Left rotate lookup table (ROM). |
+| `0xFC0..=0xFFF` | Right rotate lookup table (ROM). |
 
 
 ## Lexical Conventions
