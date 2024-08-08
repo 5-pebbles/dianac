@@ -81,6 +81,8 @@ impl<'a> Parser<'a> {
                 Keyword::Ror => handlers::ror(self.parse_either()?),
                 Keyword::Shl => handlers::shl(self.parse_either()?),
                 Keyword::Shr => handlers::shr(self.parse_either()?),
+                // Arithmetic
+                Keyword::Add => handlers::add(self.parse_register()?, self.parse_either()?),
                 // Memory
                 Keyword::Set => handlers::set(self.parse_immediate()?),
                 Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
@@ -100,6 +102,7 @@ impl<'a> Parser<'a> {
             Err(diagnostic) => self.diagnostics.push(diagnostic),
         };
 
+        // TODO allow trailing comments
         self.parse_end_of_line()
     }
 

@@ -165,6 +165,57 @@ pub fn shr(either: Either) -> Vec<Ir> {
         .build()
 }
 
+pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
+    // TODO this could be optimized further (mov followed by and should be expanded)
+    let mut builder = VecBuilder::new();
+
+    // this is the most efficient allocation of registers
+    let carry = IrRegister::C;
+    let (primary, secondary) = if register == carry {
+        let secondary = match either {
+            Either::Immediate(_) | Either::Register(IrRegister::C) => {
+                free_register!(carry).unwrap()
+            }
+            Either::Register(ref value) => value.clone(),
+        };
+        (free_register!(secondary, carry).unwrap(), secondary)
+    } else {
+        let secondary = free_register!(register, carry).unwrap();
+        (register.clone(), secondary)
+    };
+
+    // mov will optimize if source == destination
+    builder.extend(mov(secondary.clone(), either));
+    builder.extend(mov(primary.clone(), Either::Register(register.clone())));
+
+    (0..6).into_iter().for_each(|i| {
+        if i == 0 {
+            builder.extend(mov(carry.clone(), Either::Register(register.clone())));
+        } else {
+            // carry = rol(carry) this is why carry is always C
+            builder.extend(rol(Either::Register(carry.clone())));
+            // secondary = carry
+            builder.extend(mov(secondary.clone(), Either::Register(carry.clone())));
+            builder.extend(mov(carry.clone(), Either::Register(primary.clone())));
+        };
+        // carry = and(primary, secondary)
+        builder
+            .extend(and(carry.clone(), Either::Register(secondary.clone())))
+            .extend(not(secondary.clone()));
+        // primary = xor(primary, secondary)
+        builder
+            .push(Ir::Nor(
+                primary.clone(),
+                Either::Register(secondary.clone()),
+            ))
+            .push(Ir::Nor(primary.clone(), Either::Register(carry.clone())));
+    });
+
+    builder.extend(mov(register, Either::Register(primary)));
+
+    builder.build()
+}
+
 pub fn set(immediate: Immediate) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Set(immediate)).build()
 }
