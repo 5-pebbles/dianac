@@ -26,7 +26,9 @@ pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error
     let start_time = Instant::now();
 
     let code = fs::read_to_string(&source)?;
-    let parser = Parser::from(code.as_str());
+    // This makes parsing case independent; the original code is saved for diagnostics
+    let code_uppercase = code.to_uppercase();
+    let parser = Parser::from(code_uppercase.as_str());
 
     let (ir, mut diagnostics) = parser.parse();
     let (symbol_table, more_diagnostics) = analyzer(&ir);
