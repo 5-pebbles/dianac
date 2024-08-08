@@ -178,9 +178,7 @@ These keywords simply load the corresponding address from the right and left rot
 | Keyword | Description | Notes |
 |---------|-------------|-------|
 | `ADD [reg] [eth]` | add | All registers will be clobbered; this is true even if an immediate value is used. |
-| `ADS [reg] [eth]` | saturated add | All registers will be clobbered; this is true even if an immediate value is used. |
 | `SUB [reg] [eth]` | subtract | All registers will be clobbered; this is true even if an immediate value is used. |
-| `SBS [reg] [eth]` | saturated subtract | All registers will be clobbered; this is true even if an immediate value is used. |
 
 ### Memory Keywords
 
