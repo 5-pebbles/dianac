@@ -171,6 +171,10 @@ pub fn set(immediate: Immediate) -> Vec<Ir> {
 }
 
 pub fn mov(register: IrRegister, either: Either) -> Vec<Ir> {
+    if matches!(either, Either::Register(ref value) if *value == register) {
+        return Vec::new();
+    }
+
     VecBuilder::new()
         .push(Ir::Nor(
             register.clone(),
