@@ -250,3 +250,9 @@ pub fn lab(label: &str, span: Span) -> Vec<Ir> {
 pub fn pc(address: AddressTuple) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Pc(address)).build()
 }
+
+pub fn hlt<'a>() -> Vec<Ir<'a>> {
+    VecBuilder::new()
+        .push(Ir::Set(Immediate::Constant(u6::new(0b001111))))
+        .build()
+}

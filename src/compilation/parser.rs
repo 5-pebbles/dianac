@@ -94,6 +94,8 @@ impl<'a> Parser<'a> {
                     let (label, span) = self.parse_identifier()?;
                     handlers::lab(label, span)
                 }
+                // Miscellaneous
+                Keyword::HLT => handlers::hlt(),
             })
         };
 

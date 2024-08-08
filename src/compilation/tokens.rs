@@ -87,6 +87,8 @@ pub enum Keyword {
     // Jump
     Pc,
     Lab,
+    // Miscellaneous
+    HLT,
 }
 
 #[derive(Debug, PartialEq, Clone)]

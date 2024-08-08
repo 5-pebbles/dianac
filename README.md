@@ -35,7 +35,7 @@ The Diana II is 6-bit minimal instruction set computer designed around using `NO
 
 - **address size:** 12-bits (two 6-bit operands, first is higher order).
 
-- **unique instructions:** 8.
+- **unique instructions:** 5.
 
 
 ### Instructions
@@ -262,3 +262,9 @@ These keywords simply load the corresponding address from the right and left rot
 |---------|-------------|-------|
 | `PC [add]`  | set program counter to `[add]` | - |
 | `LAB [idn]` | define a label pointing to the next statement | - |
+
+### Miscellaneous Keywords
+
+| Keyword | Description | Notes |
+|---------|-------------|-------|
+| `HLT` | halts the CPU until the next interrupt | - |
