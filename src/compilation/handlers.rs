@@ -53,8 +53,7 @@ macro_rules! free_register {
 
         IrRegister::iter()
             .rev()
-            .find(|ir| !used.contains(ir))
-            .unwrap()}
+            .find(|ir| !used.contains(ir))}
     };
 }
 
@@ -108,9 +107,9 @@ pub fn xor(register: IrRegister, either: Either) -> Vec<Ir> {
 
 pub fn nxor(register: IrRegister, either: Either) -> Vec<Ir> {
     let free_register = if let Either::Register(other_register) = &either {
-        free_register!(register, other_register)
+        free_register!(register, other_register).unwrap()
     } else {
-        free_register!(register)
+        free_register!(register).unwrap()
     };
 
     VecBuilder::new()
