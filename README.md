@@ -231,7 +231,7 @@ Operands will be displayed in square brackets \[ \] using the following shorthan
 
 ### Shift and Rotate Keywords
 
-These keywords simply load the corresponding address from the right and left rotate [lookup tables](https://github.com/5-pebbles/diana-ii#memory-layout).
+These keywords simply load the corresponding address from the right and left rotate [lookup tables](#memory-layout).
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
