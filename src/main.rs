@@ -4,6 +4,7 @@ use std::path::PathBuf;
 mod compilation;
 mod emulation;
 
+mod character_encoding;
 mod errors;
 mod instruction;
 
