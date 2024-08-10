@@ -1,4 +1,4 @@
-use std::{char::CharTryFromError, sync::OnceLock};
+use std::sync::OnceLock;
 
 use arbitrary_int::u6;
 use bimap::BiMap;

@@ -2,13 +2,16 @@ use std::num::IntErrorKind;
 
 use arbitrary_int::u6;
 
-use crate::compilation::{
-    diagnostic::{DiagKind, DiagLevel, Diagnostic},
-    handlers,
-    ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
-    lexer::Cursor,
-    span::Span,
-    tokens::{Base, Keyword, Register, Token, TokenKind},
+use crate::{
+    character_encoding::encode_character,
+    compilation::{
+        diagnostic::{DiagKind, DiagLevel, Diagnostic},
+        handlers,
+        ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
+        lexer::Cursor,
+        span::Span,
+        tokens::{Base, Keyword, Register, Token, TokenKind},
+    },
 };
 
 macro_rules! match_token_kind {
@@ -161,9 +164,12 @@ impl<'a> Parser<'a> {
             ref token @ match_token_kind!(TokenKind::Numeric { ref base, ref prefix_len }) => {
                 self.parse_numeric(&token.span, base, prefix_len)
             }
+            ref token @ match_token_kind!(TokenKind::Character { ref terminated }) => {
+                self.parse_character(&token.span, &terminated)
+            }
             unexpected => Err(unexpected_token_error(
                 unexpected,
-                "OpenParen | Bang | Numeric | Label",
+                "OpenParen | Bang | Numeric | Label | Character",
             )),
         }
     }
@@ -219,6 +225,30 @@ impl<'a> Parser<'a> {
             )),
             _ => Err(unexpected_token_error(num, "Numeric(Decimal(`0` | `1`))")),
         }
+    }
+
+    pub fn parse_character(
+        &mut self,
+        span: &Span,
+        terminated: &bool,
+    ) -> Result<Immediate<'a>, Diagnostic> {
+        if !terminated {
+            return Err(Diagnostic {
+                level: DiagLevel::Fatal,
+                span: span.clone(),
+                kind: DiagKind::IncompleteCharacter,
+            });
+        }
+
+        let character = self.raw[span.as_range()].chars().nth(1).unwrap();
+
+        encode_character(&character)
+            .map(|numeric| Immediate::Constant(*numeric))
+            .ok_or(Diagnostic {
+                level: DiagLevel::Fatal,
+                span: span.clone(),
+                kind: DiagKind::UnsupportedCharacter(character),
+            })
     }
 
     pub fn parse_end_of_line(&mut self) {

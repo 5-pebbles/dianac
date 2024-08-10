@@ -63,6 +63,8 @@ pub enum DiagKind {
         expected: &'static str,
     },
     ParseImmediate(IntErrorKind),
+    IncompleteCharacter,
+    UnsupportedCharacter(char),
 }
 
 impl DiagKind {
