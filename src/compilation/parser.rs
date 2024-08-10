@@ -121,10 +121,20 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_address_tuple(&mut self) -> Result<AddressTuple<'a>, Diagnostic> {
-        // TODO This should work for full labels not just pairs of indexed ones
-        let first = self.parse_either()?;
-        let second = self.parse_either()?;
-        Ok(AddressTuple(first, second))
+        let mut clone = self.cursor.clone();
+        if clone.advance_token().kind == TokenKind::Identifier
+            && clone.advance_token().kind != TokenKind::Colon
+        {
+            let token = self.cursor.advance_token();
+            let span = token.span;
+            let label = &self.raw[span.as_range()];
+            Ok(AddressTuple(
+                Either::Immediate(Immediate::LabelP0(label, span.clone())),
+                Either::Immediate(Immediate::LabelP1(label, span)),
+            ))
+        } else {
+            Ok(AddressTuple(self.parse_either()?, self.parse_either()?))
+        }
     }
 
     pub fn parse_either(&mut self) -> Result<Either<'a>, Diagnostic> {
