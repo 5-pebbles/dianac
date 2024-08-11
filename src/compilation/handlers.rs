@@ -216,6 +216,55 @@ pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
     builder.build()
 }
 
+pub fn sub(register: IrRegister, either: Either) -> Vec<Ir> {
+    // TODO this could be optimized further
+    // TODO check if can be combined with add both are similar
+    let mut builder = VecBuilder::new();
+
+    // this is the most efficient allocation of registers
+    let carry = IrRegister::C;
+    let (minuend, subtrahend) = if register == carry {
+        let secondary = match either {
+            Either::Immediate(_) | Either::Register(IrRegister::C) => {
+                free_register!(carry).unwrap()
+            }
+            Either::Register(ref value) => value.clone(),
+        };
+        (free_register!(secondary, carry).unwrap(), secondary)
+    } else {
+        let secondary = free_register!(register, carry).unwrap();
+        (register.clone(), secondary)
+    };
+
+    // mov will optimize if source == destination
+    builder.extend(mov(subtrahend.clone(), either));
+    builder.extend(mov(minuend.clone(), Either::Register(register.clone())));
+
+    (0..6).into_iter().for_each(|_| {
+        builder
+            .push(Ir::Nor(
+                carry.clone(),
+                Either::Immediate(Immediate::Constant(u6::new(0b111111))),
+            ))
+            .push(Ir::Nor(carry.clone(), Either::Register(subtrahend.clone())))
+            .push(Ir::Nor(carry.clone(), Either::Register(minuend.clone())));
+
+        builder.extend(not(minuend.clone())).push(Ir::Nor(
+            minuend.clone(),
+            Either::Register(subtrahend.clone()),
+        ));
+
+        builder
+            .extend(or(minuend.clone(), Either::Register(carry.clone())))
+            .extend(rol(Either::Register(carry.clone())))
+            .extend(mov(subtrahend.clone(), Either::Register(carry.clone())));
+    });
+
+    builder.extend(mov(register, Either::Register(minuend)));
+
+    builder.build()
+}
+
 pub fn set(immediate: Immediate) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Set(immediate)).build()
 }

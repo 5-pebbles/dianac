@@ -79,6 +79,7 @@ pub enum Keyword {
     Shr,
     // Arithmetic
     Add,
+    Sub,
     // Memory
     Set,
     Mov,

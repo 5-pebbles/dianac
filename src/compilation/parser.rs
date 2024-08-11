@@ -86,6 +86,7 @@ impl<'a> Parser<'a> {
                 Keyword::Shr => handlers::shr(self.parse_either()?),
                 // Arithmetic
                 Keyword::Add => handlers::add(self.parse_register()?, self.parse_either()?),
+                Keyword::Sub => handlers::sub(self.parse_register()?, self.parse_either()?),
                 // Memory
                 Keyword::Set => handlers::set(self.parse_immediate()?),
                 Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
