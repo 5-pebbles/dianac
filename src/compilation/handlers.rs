@@ -2,8 +2,8 @@ use arbitrary_int::u6;
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
 
-use crate::compilation::{
-    ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
+use super::{
+    ir::{AddressTuple, Conditional, Either, Immediate, Ir, IrRegister},
     span::Span,
 };
 
@@ -292,12 +292,16 @@ pub fn sto(address: AddressTuple) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Store(address)).build()
 }
 
+pub fn pc(address: AddressTuple) -> Vec<Ir> {
+    VecBuilder::new().push(Ir::Pc(address)).build()
+}
+
 pub fn lab(label: &str, span: Span) -> Vec<Ir> {
     VecBuilder::new().push(Ir::Label(label, span)).build()
 }
 
-pub fn pc(address: AddressTuple) -> Vec<Ir> {
-    VecBuilder::new().push(Ir::Pc(address)).build()
+pub fn lih<'a>(condition: Conditional, address: AddressTuple) -> Vec<Ir<'a>> {
+    Vec::new()
 }
 
 pub fn hlt<'a>() -> Vec<Ir<'a>> {

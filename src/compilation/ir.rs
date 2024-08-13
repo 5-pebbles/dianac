@@ -60,6 +60,19 @@ pub enum IrRegister {
 }
 
 #[derive(Debug, Clone)]
+pub struct Conditional<'a>(pub Either<'a>, pub ConditionalKind, pub Either<'a>);
+
+#[derive(Debug, Clone)]
+pub enum ConditionalKind {
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual,
+}
+
+#[derive(Debug, Clone)]
 pub enum Immediate<'a> {
     Constant(u6),
     LabelP0(&'a str, Span),

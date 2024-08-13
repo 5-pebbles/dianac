@@ -7,7 +7,7 @@ use crate::{
     compilation::{
         diagnostic::{DiagKind, DiagLevel, Diagnostic},
         handlers,
-        ir::{AddressTuple, Either, Immediate, Ir, IrRegister},
+        ir::{AddressTuple, Conditional, ConditionalKind, Either, Immediate, Ir, IrRegister},
         lexer::Cursor,
         span::Span,
         tokens::{Base, Keyword, Register, Token, TokenKind},
@@ -98,6 +98,16 @@ impl<'a> Parser<'a> {
                     let (label, span) = self.parse_identifier()?;
                     handlers::lab(label, span)
                 }
+                Keyword::Lih => {
+                    // this code should work fine and its safe... but it don't...
+                    // let conditional = self.parse_conditional()?;
+                    // let address_tuple = self.parse_address_tuple()?;
+                    // handlers::lih(conditional, address_tuple);
+                    let conditional: Conditional =
+                        unsafe { core::mem::transmute(self.parse_conditional()?) };
+                    let address_tuple = self.parse_address_tuple()?;
+                    handlers::lih(conditional, address_tuple)
+                }
                 // Miscellaneous
                 Keyword::HLT => handlers::hlt(),
             })
@@ -156,6 +166,51 @@ impl<'a> Parser<'a> {
                 Register::C => IrRegister::C,
             }),
             unexpected => Err(unexpected_token_error(unexpected, "Register")),
+        }
+    }
+
+    pub fn parse_conditional(&mut self) -> Result<Conditional, Diagnostic> {
+        match self.cursor.advance_token() {
+            match_token_kind!(TokenKind::OpenBracket) => (),
+            unexpected => return Err(unexpected_token_error(unexpected, "OpenBracket")),
+        }
+
+        let first = self.parse_either()?;
+        let condition = match self.cursor.advance_token() {
+            match_token_kind!(TokenKind::Eq) => match self.cursor.advance_token() {
+                match_token_kind!(TokenKind::Eq) => ConditionalKind::Equal,
+                unexpected => return Err(unexpected_token_error(unexpected, "Eq")),
+            },
+            match_token_kind!(TokenKind::Not) => match self.cursor.advance_token() {
+                match_token_kind!(TokenKind::Eq) => ConditionalKind::NotEqual,
+                unexpected => return Err(unexpected_token_error(unexpected, "Eq")),
+            },
+            match_token_kind!(TokenKind::Greater) => match self.cursor.clone().advance_token() {
+                match_token_kind!(TokenKind::Eq) => {
+                    self.cursor.advance_token();
+                    ConditionalKind::GreaterOrEqual
+                }
+                _ => ConditionalKind::Greater,
+            },
+            match_token_kind!(TokenKind::Less) => match self.cursor.clone().advance_token() {
+                match_token_kind!(TokenKind::Eq) => {
+                    self.cursor.advance_token();
+                    ConditionalKind::LessOrEqual
+                }
+                _ => ConditionalKind::Less,
+            },
+            unexpected => {
+                return Err(unexpected_token_error(
+                    unexpected,
+                    "Eq | Not | Greater | Less",
+                ))
+            }
+        };
+        let last = self.parse_either()?;
+
+        match self.cursor.advance_token() {
+            match_token_kind!(TokenKind::CloseBracket) => Ok(Conditional(first, condition, last)),
+            unexpected => Err(unexpected_token_error(unexpected, "CloseBracket")),
         }
     }
 

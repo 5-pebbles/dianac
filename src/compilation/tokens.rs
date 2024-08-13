@@ -98,6 +98,7 @@ pub enum Keyword {
     // Jump
     Pc,
     Lab,
+    Lih,
     // Miscellaneous
     HLT,
 }
