@@ -157,15 +157,22 @@ The compiler supports the following operators for use in expressions. Operators 
 
 |     |     |
 |-----|-----|
+|  !  | Logical NOT |
+|  &  | Logical AND |
+|  \| | Logical OR |
 |  +  | Addition |
 |  -  | Subtraction |
 |  *  | Multiplication |
 |  /  | Division |
-|  &  | Logical AND |
-|  \| | Logical OR |
-|  >> | Shift right |
-|  << | Shift left |
-|  %  | Modulo |
+|  >> | Rotate right |
+|  << | Rotate left |
+
+All operators except Logical NOT require two values and parentheses ():
+
+- `(5 + 9 + 3)` = **17**
+- `!0b111110` = **0b000001**
+- `(2 + (2 * 5))` = **12**
+- `(2 + 2 * 5)` = **20**
 
 
 ## Keywords, Operands, and Addressing

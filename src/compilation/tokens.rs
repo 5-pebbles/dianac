@@ -37,10 +37,20 @@ pub enum TokenKind {
     Colon,
     /// "="
     Eq,
+    /// "!"
+    Not,
+    /// "&"
+    And,
     /// "|"
     Or,
-    /// "!"
-    Bang,
+    /// "+"
+    Add,
+    /// "-"
+    Sub,
+    /// "*"
+    Mul,
+    /// "/"
+    Div,
     /// ">"
     Greater,
     /// "<"

@@ -162,13 +162,14 @@ impl<'a> Parser<'a> {
     pub fn parse_immediate(&mut self) -> Result<Immediate<'a>, Diagnostic> {
         match self.cursor.advance_token() {
             match_token_kind!(TokenKind::OpenParen) => {
-                let immediate = self.parse_block()?;
+                let immediate = self.parse_immediate()?;
+                let block = self.parse_block(immediate)?;
                 match self.cursor.advance_token() {
-                    match_token_kind!(TokenKind::CloseParen) => Ok(immediate),
+                    match_token_kind!(TokenKind::CloseParen) => Ok(block),
                     unexpected => Err(unexpected_token_error(unexpected, "CloseParen")),
                 }
             }
-            match_token_kind!(TokenKind::Bang) => {
+            match_token_kind!(TokenKind::Not) => {
                 Ok(Immediate::Not(Box::new(self.parse_immediate()?)))
             }
             token @ match_token_kind!(TokenKind::Identifier) => self.parse_label(token),
@@ -185,15 +186,31 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_block(&mut self) -> Result<Immediate<'a>, Diagnostic> {
-        let immediate = self.parse_immediate()?;
-        Ok(match self.cursor.clone().advance_token() {
-            match_token_kind!(TokenKind::Or) => {
+    fn parse_block(&mut self, immediate: Immediate<'a>) -> Result<Immediate<'a>, Diagnostic> {
+        let mut clone = self.cursor.clone();
+        let operator_builder = match clone.advance_token().kind {
+            TokenKind::And => |first, second| Immediate::And(first, second),
+            TokenKind::Or => |first, second| Immediate::Or(first, second),
+            TokenKind::Add => |first, second| Immediate::Add(first, second),
+            TokenKind::Sub => |first, second| Immediate::Sub(first, second),
+            TokenKind::Mul => |first, second| Immediate::Mul(first, second),
+            TokenKind::Div => |first, second| Immediate::Div(first, second),
+            TokenKind::Less if clone.advance_token().kind == TokenKind::Less => {
                 self.cursor.advance_token();
-                Immediate::Or(Box::new(immediate), Box::new(self.parse_immediate()?))
+                |first, second| Immediate::Rol(first, second)
             }
-            _ => immediate,
-        })
+            TokenKind::Greater if clone.advance_token().kind == TokenKind::Greater => {
+                self.cursor.advance_token();
+                |first, second| Immediate::Ror(first, second)
+            }
+            _ => return Ok(immediate),
+        };
+
+        self.cursor.advance_token();
+
+        let next = self.parse_immediate()?;
+
+        Ok(self.parse_block(operator_builder(Box::new(immediate), Box::new(next)))?)
     }
 
     fn parse_numeric(

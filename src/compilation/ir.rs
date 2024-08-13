@@ -65,7 +65,14 @@ pub enum Immediate<'a> {
     LabelP0(&'a str, Span),
     LabelP1(&'a str, Span),
     Not(Box<Immediate<'a>>),
+    And(Box<Immediate<'a>>, Box<Immediate<'a>>),
     Or(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Add(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Sub(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Mul(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Div(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Rol(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    Ror(Box<Immediate<'a>>, Box<Immediate<'a>>),
 }
 
 fn u12_to_u6(value: u12) -> u6 {
@@ -96,9 +103,30 @@ impl<'a> Immediate<'a> {
                     .ok_or_else(|| undefined_label_error(span.clone()))?,
             ),
             Immediate::Not(value) => !value.flatten(symbol_table)?,
+            Immediate::And(first, second) => {
+                first.flatten(symbol_table)? & second.flatten(symbol_table)?
+            }
             Immediate::Or(first, second) => {
                 first.flatten(symbol_table)? | second.flatten(symbol_table)?
             }
+            Immediate::Add(first, second) => {
+                first.flatten(symbol_table)? + second.flatten(symbol_table)?
+            }
+            Immediate::Sub(first, second) => {
+                first.flatten(symbol_table)? - second.flatten(symbol_table)?
+            }
+            Immediate::Mul(first, second) => {
+                first.flatten(symbol_table)? * second.flatten(symbol_table)?
+            }
+            Immediate::Div(first, second) => {
+                first.flatten(symbol_table)? / second.flatten(symbol_table)?
+            }
+            Immediate::Rol(first, second) => first
+                .flatten(symbol_table)?
+                .rotate_left(second.flatten(symbol_table)?.into()),
+            Immediate::Ror(first, second) => first
+                .flatten(symbol_table)?
+                .rotate_right(second.flatten(symbol_table)?.into()),
         })
     }
 }
