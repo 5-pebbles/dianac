@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-macro_rules! match_token_kind {
+macro_rules! token_kind {
     ($pattern:pat) => {
         Token { kind: $pattern, .. }
     };
@@ -56,12 +56,12 @@ impl<'a> Parser<'a> {
     pub fn advance_ir(&mut self) {
         // TODO move to next line on error
         let keyword = match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::NewLine) => return,
-            match_token_kind!(TokenKind::LineComment) => {
+            token_kind!(TokenKind::NewLine) => return,
+            token_kind!(TokenKind::LineComment) => {
                 self.parse_end_of_line();
                 return;
             }
-            match_token_kind!(TokenKind::Keyword(keyword)) => keyword,
+            token_kind!(TokenKind::Keyword(keyword)) => keyword,
             token => {
                 self.diagnostics
                     .push(unexpected_token_error(token, "Keyword | Comment | NewLine"));
@@ -124,7 +124,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse_identifier(&mut self) -> Result<(&'a str, Span), Diagnostic> {
         match self.cursor.advance_token() {
-            token @ match_token_kind!(TokenKind::Identifier) => {
+            token @ token_kind!(TokenKind::Identifier) => {
                 Ok((&self.raw[token.span.as_range()], token.span))
             }
             unexpected => Err(unexpected_token_error(unexpected, "Identifier")),
@@ -160,7 +160,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse_register(&mut self) -> Result<IrRegister, Diagnostic> {
         match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::Register(register)) => Ok(match register {
+            token_kind!(TokenKind::Register(register)) => Ok(match register {
                 Register::A => IrRegister::A,
                 Register::B => IrRegister::B,
                 Register::C => IrRegister::C,
@@ -171,31 +171,31 @@ impl<'a> Parser<'a> {
 
     pub fn parse_conditional(&mut self) -> Result<Conditional, Diagnostic> {
         match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::OpenBracket) => (),
+            token_kind!(TokenKind::OpenBracket) => (),
             unexpected => return Err(unexpected_token_error(unexpected, "OpenBracket")),
         }
 
         let first = self.parse_either()?;
         let condition = match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::Eq) => match self.cursor.advance_token() {
-                match_token_kind!(TokenKind::Eq) => ConditionalKind::Equal,
+            token_kind!(TokenKind::Eq) => match self.cursor.advance_token() {
+                token_kind!(TokenKind::Eq) => ConditionalKind::Eq,
                 unexpected => return Err(unexpected_token_error(unexpected, "Eq")),
             },
-            match_token_kind!(TokenKind::Not) => match self.cursor.advance_token() {
-                match_token_kind!(TokenKind::Eq) => ConditionalKind::NotEqual,
+            token_kind!(TokenKind::Not) => match self.cursor.advance_token() {
+                token_kind!(TokenKind::Eq) => ConditionalKind::NotEq,
                 unexpected => return Err(unexpected_token_error(unexpected, "Eq")),
             },
-            match_token_kind!(TokenKind::Greater) => match self.cursor.clone().advance_token() {
-                match_token_kind!(TokenKind::Eq) => {
+            token_kind!(TokenKind::Greater) => match self.cursor.clone().advance_token() {
+                token_kind!(TokenKind::Eq) => {
                     self.cursor.advance_token();
-                    ConditionalKind::GreaterOrEqual
+                    ConditionalKind::GreaterEq
                 }
                 _ => ConditionalKind::Greater,
             },
-            match_token_kind!(TokenKind::Less) => match self.cursor.clone().advance_token() {
-                match_token_kind!(TokenKind::Eq) => {
+            token_kind!(TokenKind::Less) => match self.cursor.clone().advance_token() {
+                token_kind!(TokenKind::Eq) => {
                     self.cursor.advance_token();
-                    ConditionalKind::LessOrEqual
+                    ConditionalKind::LessEq
                 }
                 _ => ConditionalKind::Less,
             },
@@ -209,29 +209,27 @@ impl<'a> Parser<'a> {
         let last = self.parse_either()?;
 
         match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::CloseBracket) => Ok(Conditional(first, condition, last)),
+            token_kind!(TokenKind::CloseBracket) => Ok(Conditional(first, condition, last)),
             unexpected => Err(unexpected_token_error(unexpected, "CloseBracket")),
         }
     }
 
     pub fn parse_immediate(&mut self) -> Result<Immediate<'a>, Diagnostic> {
         match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::OpenParen) => {
+            token_kind!(TokenKind::OpenParen) => {
                 let immediate = self.parse_immediate()?;
                 let block = self.parse_block(immediate)?;
                 match self.cursor.advance_token() {
-                    match_token_kind!(TokenKind::CloseParen) => Ok(block),
+                    token_kind!(TokenKind::CloseParen) => Ok(block),
                     unexpected => Err(unexpected_token_error(unexpected, "CloseParen")),
                 }
             }
-            match_token_kind!(TokenKind::Not) => {
-                Ok(Immediate::Not(Box::new(self.parse_immediate()?)))
-            }
-            token @ match_token_kind!(TokenKind::Identifier) => self.parse_label(token),
-            ref token @ match_token_kind!(TokenKind::Numeric { ref base, ref prefix_len }) => {
+            token_kind!(TokenKind::Not) => Ok(Immediate::Not(Box::new(self.parse_immediate()?))),
+            token @ token_kind!(TokenKind::Identifier) => self.parse_label(token),
+            ref token @ token_kind!(TokenKind::Numeric { ref base, ref prefix_len }) => {
                 self.parse_numeric(&token.span, base, prefix_len)
             }
-            ref token @ match_token_kind!(TokenKind::Character { ref terminated }) => {
+            ref token @ token_kind!(TokenKind::Character { ref terminated }) => {
                 self.parse_character(&token.span, &terminated)
             }
             unexpected => Err(unexpected_token_error(
@@ -292,7 +290,7 @@ impl<'a> Parser<'a> {
 
     fn parse_label(&mut self, first: Token) -> Result<Immediate<'a>, Diagnostic> {
         match self.cursor.advance_token() {
-            match_token_kind!(TokenKind::Colon) => (),
+            token_kind!(TokenKind::Colon) => (),
             unexpected => return Err(unexpected_token_error(unexpected, "Colon")),
         };
 
@@ -336,7 +334,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse_end_of_line(&mut self) {
         match self.cursor.clone().advance_token() {
-            match_token_kind!(TokenKind::NewLine | TokenKind::Eof) => {
+            token_kind!(TokenKind::NewLine | TokenKind::Eof) => {
                 self.cursor.advance_token();
                 ()
             }

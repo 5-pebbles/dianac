@@ -64,12 +64,12 @@ pub struct Conditional<'a>(pub Either<'a>, pub ConditionalKind, pub Either<'a>);
 
 #[derive(Debug, Clone)]
 pub enum ConditionalKind {
-    Equal,
-    NotEqual,
+    Eq,
+    NotEq,
     Greater,
-    GreaterOrEqual,
+    GreaterEq,
     Less,
-    LessOrEqual,
+    LessEq,
 }
 
 #[derive(Debug, Clone)]
