@@ -57,6 +57,37 @@ macro_rules! free_register {
     };
 }
 
+fn generate_arithmetic_register_distribution(
+    base_operand: Either,
+    other_operand: Either,
+    carry: IrRegister,
+) -> (IrRegister, IrRegister) {
+    // yum spaghetti
+    match base_operand {
+        Either::Immediate(_) => {
+            let secondary = match other_operand {
+                Either::Immediate(_) => free_register!(carry).unwrap(),
+                Either::Register(value) if value == carry => free_register!(carry).unwrap(),
+                Either::Register(value) => value.clone(),
+            };
+            (free_register!(secondary, carry).unwrap(), secondary)
+        }
+        Either::Register(register) => {
+            if register == carry {
+                let secondary = match other_operand {
+                    Either::Immediate(_) => free_register!(carry).unwrap(),
+                    Either::Register(value) if value == carry => free_register!(carry).unwrap(),
+                    Either::Register(ref value) => value.clone(),
+                };
+                (free_register!(secondary, carry).unwrap(), secondary)
+            } else {
+                let secondary = free_register!(register, carry).unwrap();
+                (register.clone(), secondary)
+            }
+        }
+    }
+}
+
 pub fn not<'a>(register: IrRegister) -> Vec<Ir<'a>> {
     VecBuilder::new()
         .push(Ir::Nor(register.clone(), Either::Register(register)))
@@ -171,18 +202,11 @@ pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
 
     // this is the most efficient allocation of registers
     let carry = IrRegister::C;
-    let (primary, secondary) = if register == carry {
-        let secondary = match either {
-            Either::Immediate(_) | Either::Register(IrRegister::C) => {
-                free_register!(carry).unwrap()
-            }
-            Either::Register(ref value) => value.clone(),
-        };
-        (free_register!(secondary, carry).unwrap(), secondary)
-    } else {
-        let secondary = free_register!(register, carry).unwrap();
-        (register.clone(), secondary)
-    };
+    let (primary, secondary) = generate_arithmetic_register_distribution(
+        Either::Register(register.clone()),
+        either.clone(),
+        carry.clone(),
+    );
 
     // mov will optimize if source == destination
     builder.extend(mov(secondary.clone(), either));
@@ -218,23 +242,15 @@ pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
 
 pub fn sub(register: IrRegister, either: Either) -> Vec<Ir> {
     // TODO this could be optimized further
-    // TODO check if can be combined with add both are similar
     let mut builder = VecBuilder::new();
 
     // this is the most efficient allocation of registers
     let carry = IrRegister::C;
-    let (minuend, subtrahend) = if register == carry {
-        let secondary = match either {
-            Either::Immediate(_) | Either::Register(IrRegister::C) => {
-                free_register!(carry).unwrap()
-            }
-            Either::Register(ref value) => value.clone(),
-        };
-        (free_register!(secondary, carry).unwrap(), secondary)
-    } else {
-        let secondary = free_register!(register, carry).unwrap();
-        (register.clone(), secondary)
-    };
+    let (minuend, subtrahend) = generate_arithmetic_register_distribution(
+        Either::Register(register.clone()),
+        either.clone(),
+        carry.clone(),
+    );
 
     // mov will optimize if source == destination
     builder.extend(mov(subtrahend.clone(), either));
