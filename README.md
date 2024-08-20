@@ -8,7 +8,7 @@ The following documentation is intended for programmers who are already familiar
 assembly language reference manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
 
 
-## Installation
+## Installation and Help
 
 **From crates.io: (Recommended)**
 
@@ -23,6 +23,30 @@ git clone https://github.com/5-pebbles/dianac.git
 cd dianac
 cargo install --path .
 ```
+
+**Basic help:**
+
+```
+~ ❯ dianac --help
+An emulator, compiler, and interpreter for the Diana Compiled Language
+
+Usage: dianac <COMMAND>
+
+Commands:
+  interpret  Interprate a program directly from source
+  emulate    Emulate the execution from a binary
+  compile    Compile a binary without execution
+  help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+**If there is anything that can be improved, please let me know:**
+
+- `Issue:` [GitHub](https://github.com/5-pebbles/dianac/issues).
+- `Email:` [5-pebble@protonmail.com](mailto:5-pebble@protonmail.com).
 
 
 ## Diana II Specifications
