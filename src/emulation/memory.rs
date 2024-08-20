@@ -32,7 +32,7 @@ impl Memory {
             0xF3E => self.program_counter.as_tuple().0,
             0xF3F => self.program_counter.as_tuple().1,
             0xF80..=0xFBF => address.1.rotate_left(1),
-            0xFC0..=0xFFF => address.1.rotate_left(1),
+            0xFC0..=0xFFF => address.1.rotate_right(1),
             _ => unreachable!(),
         }
     }
