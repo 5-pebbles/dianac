@@ -106,11 +106,11 @@ impl<'a> Cursor<'a> {
     fn consume_number(&mut self, first: char) -> TokenKind {
         let (base, prefix_len, radix) = if first == '0' {
             match self.first() {
-                'B' => {
+                'B' | 'b' => {
                     self.bump();
                     (Base::Binary, 2, 2)
                 }
-                'X' => {
+                'X' | 'x' => {
                     self.bump();
                     (Base::Hex, 2, 16)
                 }
