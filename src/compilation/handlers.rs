@@ -211,11 +211,10 @@ pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
     // mov will optimize if source == destination
     builder.extend(mov(secondary.clone(), either));
     builder.extend(mov(primary.clone(), Either::Register(register.clone())));
+    builder.extend(mov(carry.clone(), Either::Register(register.clone())));
 
     (0..6).into_iter().for_each(|i| {
-        if i == 0 {
-            builder.extend(mov(carry.clone(), Either::Register(register.clone())));
-        } else {
+        if i != 0 {
             // carry = rol(carry) this is why carry is always C
             builder.extend(rol(Either::Register(carry.clone())));
             // secondary = carry
@@ -256,7 +255,13 @@ pub fn sub(register: IrRegister, either: Either) -> Vec<Ir> {
     builder.extend(mov(subtrahend.clone(), either));
     builder.extend(mov(minuend.clone(), Either::Register(register.clone())));
 
-    (0..6).into_iter().for_each(|_| {
+    (0..6).into_iter().for_each(|i| {
+        if i != 0 {
+            builder
+                .extend(rol(Either::Register(carry.clone())))
+                .extend(mov(subtrahend.clone(), Either::Register(carry.clone())));
+        }
+
         builder
             .push(Ir::Nor(
                 carry.clone(),
@@ -270,10 +275,7 @@ pub fn sub(register: IrRegister, either: Either) -> Vec<Ir> {
             Either::Register(subtrahend.clone()),
         ));
 
-        builder
-            .extend(or(minuend.clone(), Either::Register(carry.clone())))
-            .extend(rol(Either::Register(carry.clone())))
-            .extend(mov(subtrahend.clone(), Either::Register(carry.clone())));
+        builder.extend(or(minuend.clone(), Either::Register(carry.clone())));
     });
 
     builder.extend(mov(register, Either::Register(minuend)));
