@@ -140,7 +140,7 @@ impl<'a> Parser<'a> {
             let span = token.span;
             let label = &self.raw[span.as_range()];
             Ok(AddressTuple(
-                Either::Immediate(Immediate::LabelP0(label, span.clone())),
+                Either::Immediate(Immediate::LabelP0(label, span)),
                 Either::Immediate(Immediate::LabelP1(label, span)),
             ))
         } else {
@@ -227,10 +227,10 @@ impl<'a> Parser<'a> {
             token_kind!(TokenKind::Not) => Ok(Immediate::Not(Box::new(self.parse_immediate()?))),
             token @ token_kind!(TokenKind::Identifier) => self.parse_label(token),
             ref token @ token_kind!(TokenKind::Numeric { ref base, ref prefix_len }) => {
-                self.parse_numeric(&token.span, base, prefix_len)
+                self.parse_numeric(token.span, base, prefix_len)
             }
             ref token @ token_kind!(TokenKind::Character { ref terminated }) => {
-                self.parse_character(&token.span, &terminated)
+                self.parse_character(token.span, &terminated)
             }
             unexpected => Err(unexpected_token_error(
                 unexpected,
@@ -268,7 +268,7 @@ impl<'a> Parser<'a> {
 
     fn parse_numeric(
         &self,
-        span: &Span,
+        span: Span,
         base: &Base,
         prefix_len: &usize,
     ) -> Result<Immediate<'a>, Diagnostic> {
@@ -281,7 +281,7 @@ impl<'a> Parser<'a> {
         let numeric = u6_from_str_radix(&self.raw[span.start + prefix_len..span.end], radix)
             .map_err(|e| Diagnostic {
                 level: DiagLevel::Fatal,
-                span: span.clone(),
+                span,
                 kind: DiagKind::ParseImmediate(e),
             })?;
 
@@ -310,13 +310,13 @@ impl<'a> Parser<'a> {
 
     pub fn parse_character(
         &mut self,
-        span: &Span,
+        span: Span,
         terminated: &bool,
     ) -> Result<Immediate<'a>, Diagnostic> {
         if !terminated {
             return Err(Diagnostic {
                 level: DiagLevel::Fatal,
-                span: span.clone(),
+                span,
                 kind: DiagKind::IncompleteCharacter,
             });
         }
@@ -327,7 +327,7 @@ impl<'a> Parser<'a> {
             .map(|numeric| Immediate::Constant(*numeric))
             .ok_or(Diagnostic {
                 level: DiagLevel::Fatal,
-                span: span.clone(),
+                span,
                 kind: DiagKind::UnsupportedCharacter(character),
             })
     }

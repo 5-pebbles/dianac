@@ -49,7 +49,7 @@ impl<T> VecBuilder<T> {
 
 macro_rules! free_register {
     ($($used:ident),*) => {
-        {let used = HashSet::from([$($used.clone()),*]);
+        {let used = HashSet::from([$($used),*]);
 
         IrRegister::iter()
             .rev()
@@ -68,7 +68,7 @@ fn generate_arithmetic_register_distribution(
             let secondary = match other_operand {
                 Either::Immediate(_) => free_register!(carry).unwrap(),
                 Either::Register(value) if value == carry => free_register!(carry).unwrap(),
-                Either::Register(value) => value.clone(),
+                Either::Register(value) => value,
             };
             (free_register!(secondary, carry).unwrap(), secondary)
         }
@@ -77,12 +77,12 @@ fn generate_arithmetic_register_distribution(
                 let secondary = match other_operand {
                     Either::Immediate(_) => free_register!(carry).unwrap(),
                     Either::Register(value) if value == carry => free_register!(carry).unwrap(),
-                    Either::Register(ref value) => value.clone(),
+                    Either::Register(value) => value,
                 };
                 (free_register!(secondary, carry).unwrap(), secondary)
             } else {
                 let secondary = free_register!(register, carry).unwrap();
-                (register.clone(), secondary)
+                (register, secondary)
             }
         }
     }
@@ -90,7 +90,7 @@ fn generate_arithmetic_register_distribution(
 
 pub fn not<'a>(register: IrRegister) -> Vec<Ir<'a>> {
     VecBuilder::new()
-        .push(Ir::Nor(register.clone(), Either::Register(register)))
+        .push(Ir::Nor(register, Either::Register(register)))
         .build()
 }
 
@@ -99,28 +99,28 @@ pub fn and(register: IrRegister, either: Either) -> Vec<Ir> {
 
     let either = match either {
         Either::Register(ref other_register) => {
-            builder.extend(not(other_register.clone()));
+            builder.extend(not(*other_register));
             either
         }
         Either::Immediate(immediate) => Either::Immediate(Immediate::Not(Box::new(immediate))),
     };
 
     builder
-        .extend(not(register.clone()))
+        .extend(not(register))
         .push(Ir::Nor(register, either))
         .build()
 }
 
 pub fn nand(register: IrRegister, either: Either) -> Vec<Ir> {
     VecBuilder::new()
-        .extend(and(register.clone(), either))
+        .extend(and(register, either))
         .extend(not(register))
         .build()
 }
 
 pub fn or(register: IrRegister, either: Either) -> Vec<Ir> {
     VecBuilder::new()
-        .extend(nor(register.clone(), either))
+        .extend(nor(register, either))
         .extend(not(register))
         .build()
 }
@@ -131,29 +131,23 @@ pub fn nor(register: IrRegister, either: Either) -> Vec<Ir> {
 
 pub fn xor(register: IrRegister, either: Either) -> Vec<Ir> {
     VecBuilder::new()
-        .extend(nxor(register.clone(), either))
+        .extend(nxor(register, either))
         .extend(not(register))
         .build()
 }
 
 pub fn nxor(register: IrRegister, either: Either) -> Vec<Ir> {
-    let free_register = if let Either::Register(other_register) = &either {
+    let free_register = if let Either::Register(other_register) = either {
         free_register!(register, other_register).unwrap()
     } else {
         free_register!(register).unwrap()
     };
 
     VecBuilder::new()
-        .extend(mov(
-            free_register.clone(),
-            Either::Register(register.clone()),
-        ))
-        .push(Ir::Nor(free_register.clone(), either.clone()))
-        .push(Ir::Nor(
-            register.clone(),
-            Either::Register(free_register.clone()),
-        ))
-        .push(Ir::Nor(free_register.clone(), either))
+        .extend(mov(free_register, Either::Register(register)))
+        .push(Ir::Nor(free_register, either.clone()))
+        .push(Ir::Nor(register, Either::Register(free_register)))
+        .push(Ir::Nor(free_register, either))
         .push(Ir::Nor(register, Either::Register(free_register)))
         .build()
 }
@@ -203,35 +197,32 @@ pub fn add(register: IrRegister, either: Either) -> Vec<Ir> {
     // this is the most efficient allocation of registers
     let carry = IrRegister::C;
     let (primary, secondary) = generate_arithmetic_register_distribution(
-        Either::Register(register.clone()),
+        Either::Register(register),
         either.clone(),
-        carry.clone(),
+        carry,
     );
 
     // mov will optimize if source == destination
-    builder.extend(mov(secondary.clone(), either));
-    builder.extend(mov(primary.clone(), Either::Register(register.clone())));
-    builder.extend(mov(carry.clone(), Either::Register(register.clone())));
+    builder.extend(mov(secondary, either));
+    builder.extend(mov(primary, Either::Register(register)));
+    builder.extend(mov(carry, Either::Register(register)));
 
     (0..6).into_iter().for_each(|i| {
         if i != 0 {
             // carry = rol(carry) this is why carry is always C
-            builder.extend(rol(Either::Register(carry.clone())));
+            builder.extend(rol(Either::Register(carry)));
             // secondary = carry
-            builder.extend(mov(secondary.clone(), Either::Register(carry.clone())));
-            builder.extend(mov(carry.clone(), Either::Register(primary.clone())));
+            builder.extend(mov(secondary, Either::Register(carry)));
+            builder.extend(mov(carry, Either::Register(primary)));
         };
         // carry = and(primary, secondary)
         builder
-            .extend(and(carry.clone(), Either::Register(secondary.clone())))
-            .extend(not(secondary.clone()));
+            .extend(and(carry, Either::Register(secondary)))
+            .extend(not(secondary));
         // primary = xor(primary, secondary)
         builder
-            .push(Ir::Nor(
-                primary.clone(),
-                Either::Register(secondary.clone()),
-            ))
-            .push(Ir::Nor(primary.clone(), Either::Register(carry.clone())));
+            .push(Ir::Nor(primary, Either::Register(secondary)))
+            .push(Ir::Nor(primary, Either::Register(carry)));
     });
 
     builder.extend(mov(register, Either::Register(primary)));
@@ -246,36 +237,35 @@ pub fn sub(register: IrRegister, either: Either) -> Vec<Ir> {
     // this is the most efficient allocation of registers
     let carry = IrRegister::C;
     let (minuend, subtrahend) = generate_arithmetic_register_distribution(
-        Either::Register(register.clone()),
+        Either::Register(register),
         either.clone(),
-        carry.clone(),
+        carry,
     );
 
     // mov will optimize if source == destination
-    builder.extend(mov(subtrahend.clone(), either));
-    builder.extend(mov(minuend.clone(), Either::Register(register.clone())));
+    builder.extend(mov(subtrahend, either));
+    builder.extend(mov(minuend, Either::Register(register)));
 
     (0..6).into_iter().for_each(|i| {
         if i != 0 {
             builder
-                .extend(rol(Either::Register(carry.clone())))
-                .extend(mov(subtrahend.clone(), Either::Register(carry.clone())));
+                .extend(rol(Either::Register(carry)))
+                .extend(mov(subtrahend, Either::Register(carry)));
         }
 
         builder
             .push(Ir::Nor(
-                carry.clone(),
+                carry,
                 Either::Immediate(Immediate::Constant(u6::new(0b111111))),
             ))
-            .push(Ir::Nor(carry.clone(), Either::Register(subtrahend.clone())))
-            .push(Ir::Nor(carry.clone(), Either::Register(minuend.clone())));
+            .push(Ir::Nor(carry, Either::Register(subtrahend)))
+            .push(Ir::Nor(carry, Either::Register(minuend)));
 
-        builder.extend(not(minuend.clone())).push(Ir::Nor(
-            minuend.clone(),
-            Either::Register(subtrahend.clone()),
-        ));
+        builder
+            .extend(not(minuend))
+            .push(Ir::Nor(minuend, Either::Register(subtrahend)));
 
-        builder.extend(or(minuend.clone(), Either::Register(carry.clone())));
+        builder.extend(or(minuend, Either::Register(carry)));
     });
 
     builder.extend(mov(register, Either::Register(minuend)));
@@ -294,10 +284,10 @@ pub fn mov(register: IrRegister, either: Either) -> Vec<Ir> {
 
     VecBuilder::new()
         .push(Ir::Nor(
-            register.clone(),
+            register,
             Either::Immediate(Immediate::Constant(u6::new(0b111111))),
         ))
-        .push(Ir::Nor(register.clone(), either))
+        .push(Ir::Nor(register, either))
         .extend(not(register))
         .build()
 }

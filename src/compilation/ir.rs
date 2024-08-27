@@ -52,7 +52,7 @@ impl<'a> Either<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
 pub enum IrRegister {
     A,
     B,
@@ -103,17 +103,17 @@ fn undefined_label_error(span: Span) -> Diagnostic {
 impl<'a> Immediate<'a> {
     pub fn flatten(&self, symbol_table: &HashMap<&'a str, u12>) -> Result<u6, Diagnostic> {
         Ok(match self {
-            Immediate::Constant(value) => value.clone(),
+            Immediate::Constant(value) => *value,
             Immediate::LabelP0(value, span) => u12_to_u6(
                 *symbol_table
                     .get(value)
-                    .ok_or_else(|| undefined_label_error(span.clone()))?
+                    .ok_or_else(|| undefined_label_error(*span))?
                     >> 6,
             ),
             Immediate::LabelP1(value, span) => u12_to_u6(
                 *symbol_table
                     .get(value)
-                    .ok_or_else(|| undefined_label_error(span.clone()))?,
+                    .ok_or_else(|| undefined_label_error(*span))?,
             ),
             Immediate::Not(value) => !value.flatten(symbol_table)?,
             Immediate::And(first, second) => {

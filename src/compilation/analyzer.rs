@@ -28,7 +28,7 @@ pub fn analyzer<'a>(ir: &Vec<Ir<'a>>) -> (HashMap<&'a str, u12>, Vec<Diagnostic>
                     entry.insert(address);
                     ()
                 }
-                Entry::Occupied(_) => diagnostics.push(duplicate_label_error(span.clone())),
+                Entry::Occupied(_) => diagnostics.push(duplicate_label_error(*span)),
             }
         }
         address
