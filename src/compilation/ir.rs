@@ -12,21 +12,21 @@ use crate::compilation::{
 pub enum Ir<'a> {
     Nor(IrRegister, Either<'a>),
     Pc(AddressTuple<'a>),
-    Load(AddressTuple<'a>),
-    Store(AddressTuple<'a>),
+    Lod(AddressTuple<'a>),
+    Sto(AddressTuple<'a>),
     Set(Immediate<'a>),
-    Label(&'a str, Span),
+    Hlt,
 }
 
 impl<'a> Ir<'a> {
     pub fn len(&self) -> u12 {
         match self {
             Self::Nor(_, either) => u12::new(1) + either.len(),
-            Self::Pc(address) | Self::Load(address) | Self::Store(address) => {
+            Self::Pc(address) | Self::Lod(address) | Self::Sto(address) => {
                 u12::new(1) + address.len()
             }
             Self::Set(_) => u12::new(1),
-            Self::Label(_, _) => u12::new(0),
+            Self::Hlt => u12::new(1),
         }
     }
 }

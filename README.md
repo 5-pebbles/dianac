@@ -248,7 +248,7 @@ Operands will be displayed in square brackets \[ \] using the following shorthan
 - `[add]` = **address**
 - `[con]` = **conditional**
 
-### Logical Keywords
+### Bitwise Logic Keywords
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|

@@ -5,7 +5,7 @@ use colored::Colorize;
 
 use crate::errors::Error;
 
-use self::{analyzer::analyzer, assembler::assemble, diagnostic::DiagLevel, parser::Parser};
+use self::{assembler::assemble, diagnostic::DiagLevel, parser::Parser};
 
 mod diagnostic;
 mod span;
@@ -13,9 +13,8 @@ mod span;
 mod ir;
 mod tokens;
 
-mod analyzer;
 mod assembler;
-mod handlers;
+mod generator;
 mod lexer;
 mod parser;
 
@@ -29,12 +28,10 @@ pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error
     // This makes parsing case independent; the original code is saved for diagnostics
     let code_uppercase = code.to_uppercase();
     let parser = Parser::from(code_uppercase.as_str());
+    let result = parser.parse();
+    let mut diagnostics = result.diagnostics;
 
-    let (ir, mut diagnostics) = parser.parse();
-    let (symbol_table, more_diagnostics) = analyzer(&ir);
-    diagnostics.extend(more_diagnostics);
-
-    let (instructions, more_diagnostics) = assemble(&ir, &symbol_table);
+    let (instructions, more_diagnostics) = assemble(&result.ir, &result.symbol_table);
     let elapsed_time = start_time.elapsed();
 
     diagnostics.extend(more_diagnostics);

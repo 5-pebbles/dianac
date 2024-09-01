@@ -10,6 +10,26 @@ use crate::{
     instruction::{Instruction, Operation, Register},
 };
 
+fn ir_into_register(register: &IrRegister) -> Register {
+    match register {
+        IrRegister::A => Register::A,
+        IrRegister::B => Register::B,
+        IrRegister::C => Register::C,
+    }
+}
+
+fn get_register_or_immediate(
+    either: &Either,
+    symbol_table: &HashMap<&str, u12>,
+) -> Result<(Register, Option<u6>), Diagnostic> {
+    Ok(match either {
+        Either::Register(register) => (ir_into_register(register), None),
+        Either::Immediate(immediate) => {
+            (Register::Immediate, Some(immediate.flatten(symbol_table)?))
+        }
+    })
+}
+
 pub fn assemble<'a>(
     ir: impl IntoIterator<Item = &'a Ir<'a>>,
     symbol_table: &HashMap<&str, u12>,
@@ -30,10 +50,10 @@ fn assemble_ir(ir: &Ir, symbol_table: &HashMap<&str, u12>) -> Result<Vec<Instruc
     match ir {
         Ir::Nor(register, either) => handle_nor(register, either, symbol_table),
         Ir::Pc(address) => handle_addressable(Operation::Pc, address, symbol_table),
-        Ir::Load(address) => handle_addressable(Operation::Load, address, symbol_table),
-        Ir::Store(address) => handle_addressable(Operation::Store, address, symbol_table),
+        Ir::Lod(address) => handle_addressable(Operation::Load, address, symbol_table),
+        Ir::Sto(address) => handle_addressable(Operation::Store, address, symbol_table),
         Ir::Set(immediate) => handle_set(immediate, symbol_table),
-        Ir::Label(..) => Ok(Vec::new()),
+        Ir::Hlt => Ok(handle_hlt()),
     }
 }
 
@@ -99,22 +119,6 @@ fn handle_set(
     )])
 }
 
-fn get_register_or_immediate(
-    either: &Either,
-    symbol_table: &HashMap<&str, u12>,
-) -> Result<(Register, Option<u6>), Diagnostic> {
-    Ok(match either {
-        Either::Register(register) => (ir_into_register(register), None),
-        Either::Immediate(immediate) => {
-            (Register::Immediate, Some(immediate.flatten(symbol_table)?))
-        }
-    })
-}
-
-fn ir_into_register(register: &IrRegister) -> Register {
-    match register {
-        IrRegister::A => Register::A,
-        IrRegister::B => Register::B,
-        IrRegister::C => Register::C,
-    }
+fn handle_hlt() -> Vec<Instruction> {
+    vec![Instruction::new_with_raw_value(u6::new(0b001111))]
 }

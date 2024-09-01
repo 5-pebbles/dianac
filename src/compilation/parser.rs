@@ -1,12 +1,12 @@
-use std::num::IntErrorKind;
+use std::{collections::HashMap, num::IntErrorKind};
 
-use arbitrary_int::u6;
+use arbitrary_int::{u12, u6};
 
 use crate::{
     character_encoding::encode_character,
     compilation::{
         diagnostic::{DiagKind, DiagLevel, Diagnostic},
-        handlers,
+        generator::IrGenerator,
         ir::{AddressTuple, Conditional, ConditionalKind, Either, Immediate, Ir, IrRegister},
         lexer::Cursor,
         span::Span,
@@ -36,90 +36,161 @@ pub fn u6_from_str_radix(str: &str, radix: u32) -> Result<u6, IntErrorKind> {
         .map_err(|_| IntErrorKind::PosOverflow)
 }
 
+pub struct ParseResult<'a> {
+    pub ir: Vec<Ir<'a>>,
+    pub symbol_table: HashMap<&'a str, u12>,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
     raw: &'a str,
-    ir: Vec<Ir<'a>>,
-    diagnostics: Vec<Diagnostic>,
+    ir: IrGenerator<'a>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(mut self) -> (Vec<Ir<'a>>, Vec<Diagnostic>) {
+    pub fn parse(mut self) -> ParseResult<'a> {
+        let mut diagnostics = Vec::new();
         while !self.cursor.is_eof() {
-            self.advance_ir();
+            self.advance_ir().unwrap_or_else(|e| {
+                diagnostics.push(e);
+            });
         }
 
-        (self.ir, self.diagnostics)
+        let (ir, symbol_table) = self.ir.finalize();
+
+        ParseResult {
+            ir,
+            symbol_table,
+            diagnostics,
+        }
     }
 
-    pub fn advance_ir(&mut self) {
+    pub fn advance_ir(&mut self) -> Result<(), Diagnostic> {
         // TODO move to next line on error
         let keyword = match self.cursor.advance_token() {
-            token_kind!(TokenKind::NewLine) => return,
+            token_kind!(TokenKind::NewLine) => return Ok(()),
             token_kind!(TokenKind::LineComment) => {
-                self.parse_end_of_line();
-                return;
+                self.parse_end_of_line()?;
+                return Ok(());
             }
             token_kind!(TokenKind::Keyword(keyword)) => keyword,
             token => {
-                self.diagnostics
-                    .push(unexpected_token_error(token, "Keyword | Comment | NewLine"));
-                return;
+                return Err(unexpected_token_error(token, "Keyword | Comment | NewLine"));
             }
         };
 
-        let mut parse_helper = || -> Result<Vec<Ir>, Diagnostic> {
-            Ok(match keyword {
-                // Logic
-                Keyword::Not => handlers::not(self.parse_register()?),
-                Keyword::And => handlers::and(self.parse_register()?, self.parse_either()?),
-                Keyword::Nand => handlers::nand(self.parse_register()?, self.parse_either()?),
-                Keyword::Or => handlers::or(self.parse_register()?, self.parse_either()?),
-                Keyword::Nor => handlers::nor(self.parse_register()?, self.parse_either()?),
-                Keyword::Xor => handlers::xor(self.parse_register()?, self.parse_either()?),
-                Keyword::Nxor => handlers::nxor(self.parse_register()?, self.parse_either()?),
-                // Shift and Rotate
-                Keyword::Rol => handlers::rol(self.parse_either()?),
-                Keyword::Ror => handlers::ror(self.parse_either()?),
-                Keyword::Shl => handlers::shl(self.parse_either()?),
-                Keyword::Shr => handlers::shr(self.parse_either()?),
-                // Arithmetic
-                Keyword::Add => handlers::add(self.parse_register()?, self.parse_either()?),
-                Keyword::Sub => handlers::sub(self.parse_register()?, self.parse_either()?),
-                // Memory
-                Keyword::Set => handlers::set(self.parse_immediate()?),
-                Keyword::Mov => handlers::mov(self.parse_register()?, self.parse_either()?),
-                Keyword::Lod => handlers::lod(self.parse_address_tuple()?),
-                Keyword::Sto => handlers::sto(self.parse_address_tuple()?),
-                // Jump
-                Keyword::Pc => handlers::pc(self.parse_address_tuple()?),
-                Keyword::Lab => {
-                    let (label, span) = self.parse_identifier()?;
-                    handlers::lab(label, span)
-                }
-                Keyword::Lih => {
-                    // this code should work fine and its safe... but it don't...
-                    // let conditional = self.parse_conditional()?;
-                    // let address_tuple = self.parse_address_tuple()?;
-                    // handlers::lih(conditional, address_tuple);
-                    let conditional: Conditional =
-                        unsafe { core::mem::transmute(self.parse_conditional()?) };
-                    let address_tuple = self.parse_address_tuple()?;
-                    handlers::lih(conditional, address_tuple)
-                }
-                // Miscellaneous
-                Keyword::HLT => handlers::hlt(),
-            })
+        match keyword {
+            // Bitwise Logic
+            Keyword::Not => {
+                let register = self.parse_register()?;
+                self.ir.not(register);
+            }
+            Keyword::And => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.and(register, either);
+            }
+            Keyword::Nand => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.nand(register, either);
+            }
+            Keyword::Or => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.or(register, either);
+            }
+            Keyword::Nor => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.nor(register, either);
+            }
+            Keyword::Xor => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.xor(register, either);
+            }
+            Keyword::Nxor => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.nxor(register, either);
+            }
+            // Shift and Rotate
+            Keyword::Rol => {
+                let register = self.parse_register()?;
+                self.ir.rol(register);
+            }
+            Keyword::Ror => {
+                let register = self.parse_register()?;
+                self.ir.ror(register);
+            }
+            Keyword::Shl => {
+                let register = self.parse_register()?;
+                self.ir.shl(register);
+            }
+            Keyword::Shr => {
+                let register = self.parse_register()?;
+                self.ir.shr(register);
+            }
+            // Arithmetic
+            Keyword::Add => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.add(register, either);
+            }
+            Keyword::Sub => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.sub(register, either);
+            }
+            // Memory
+            Keyword::Set => {
+                let immediate = self.parse_immediate()?;
+                self.ir.set(immediate);
+            }
+            Keyword::Mov => {
+                let register = self.parse_register()?;
+                let either = self.parse_either()?;
+                self.ir.mov(register, either);
+            }
+            Keyword::Lod => {
+                let address = self.parse_address_tuple()?;
+                self.ir.lod(address);
+            }
+            Keyword::Sto => {
+                let address = self.parse_address_tuple()?;
+                self.ir.sto(address);
+            }
+            // Jump
+            Keyword::Pc => {
+                let address = self.parse_address_tuple()?;
+                self.ir.pc(address);
+            }
+            Keyword::Lab => {
+                let (label, span) = self.parse_identifier()?;
+                self.ir.lab(label, span)?;
+            }
+            Keyword::Lih => {
+                // this code should work fine and its safe... but it don't...
+                // let conditional = self.parse_conditional()?;
+                // let address_tuple = self.parse_address_tuple()?;
+                // self.ir.lih(conditional, address_tuple);
+                let conditional: Conditional =
+                    unsafe { core::mem::transmute(self.parse_conditional()?) };
+                let address_tuple = self.parse_address_tuple()?;
+                self.ir.lih(conditional, address_tuple);
+            }
+            // Miscellaneous
+            Keyword::HLT => {
+                self.ir.hlt();
+            }
         };
 
-        match parse_helper() {
-            Ok(ir) => self.ir.extend(ir),
-            Err(diagnostic) => self.diagnostics.push(diagnostic),
-        };
+        self.parse_end_of_line()?;
 
-        // TODO allow trailing comments
-        self.parse_end_of_line()
+        Ok(())
     }
 
     pub fn parse_identifier(&mut self) -> Result<(&'a str, Span), Diagnostic> {
@@ -332,15 +403,10 @@ impl<'a> Parser<'a> {
             })
     }
 
-    pub fn parse_end_of_line(&mut self) {
-        match self.cursor.clone().advance_token() {
-            token_kind!(TokenKind::NewLine | TokenKind::Eof) => {
-                self.cursor.advance_token();
-                ()
-            }
-            token => self
-                .diagnostics
-                .push(unexpected_token_error(token, "NewLine | Eof")),
+    pub fn parse_end_of_line(&mut self) -> Result<(), Diagnostic> {
+        match self.cursor.advance_token() {
+            token_kind!(TokenKind::NewLine | TokenKind::Eof) => Ok(()),
+            token => Err(unexpected_token_error(token, "NewLine | Eof | Comment")),
         }
     }
 }
@@ -350,8 +416,7 @@ impl<'a> From<&'a str> for Parser<'a> {
         Self {
             cursor: Cursor::from(value),
             raw: value,
-            ir: Vec::new(),
-            diagnostics: Vec::new(),
+            ir: IrGenerator::default(),
         }
     }
 }
