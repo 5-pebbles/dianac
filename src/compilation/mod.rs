@@ -1,11 +1,13 @@
-use std::{fs, path::Path, time::Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
-use arbitrary_int::u6;
-use colored::Colorize;
+use arbitrary_int::{u12, u6};
 
-use crate::errors::Error;
+use super::instruction::Instruction;
 
-use self::{assembler::assemble, diagnostic::DiagLevel, parser::Parser};
+use self::{assembler::assemble, ir::Ir, lexer::Cursor, parser::Parser, tokens::Token};
 
 mod diagnostic;
 mod span;
@@ -18,79 +20,44 @@ mod generator;
 mod lexer;
 mod parser;
 
-pub fn compile_impl(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, Error> {
-    let absolute = fs::canonicalize(source)?.to_string_lossy().into_owned();
-    println!("   {} `{absolute}`", "Compiling".green().bold(),);
+pub use diagnostic::{DiagKind, DiagLevel, Diagnostic};
 
-    let start_time = Instant::now();
-
-    let code = fs::read_to_string(&source)?;
-    // This makes parsing case independent; the original code is saved for diagnostics
-    let code_uppercase = code.to_uppercase();
-    let parser = Parser::from(code_uppercase.as_str());
-    let result = parser.parse();
-    let mut diagnostics = result.diagnostics;
-
-    let (instructions, more_diagnostics) = assemble(&result.ir, &result.symbol_table);
-    let elapsed_time = start_time.elapsed();
-
-    diagnostics.extend(more_diagnostics);
-
-    let log_level = quiet
-        .then_some(DiagLevel::Fatal)
-        .unwrap_or(DiagLevel::Warning);
-
-    let (mut errors, mut warnings) = (0, 0);
-    diagnostics
-        .into_iter()
-        .filter(|diag| diag.level <= log_level)
-        .for_each(|diag| {
-            diag.emit(&code, source);
-            match diag.level {
-                DiagLevel::Fatal => errors += 1,
-                DiagLevel::Warning => warnings += 1,
-            }
-        });
-
-    let warning_plural = if warnings > 1 { "warnings" } else { "warning" };
-
-    if !quiet && warnings > 0 {
-        println!(
-            "{} generated {warnings} {warning_plural}",
-            format!("{}:", "warning".yellow()).bold(),
-        )
-    }
-
-    Ok(if errors == 0 {
-        println!(
-            "    {} `{absolute}` in {:?}",
-            "Finished".green().bold(),
-            elapsed_time,
-        );
-        Some(instructions.into_iter().map(|i| i.raw_value()).collect())
-    } else {
-        let error_plural = if errors > 1 { "errors" } else { "error" };
-
-        println!(
-            "{} could not compile due to {errors} previous {error_plural}{}",
-            format!("{}:", "error".red()).bold(),
-            if warnings > 0 {
-                format!("; {warnings} {warning_plural} emitted")
-            } else {
-                "".to_string()
-            }
-        );
-        None
-    })
+pub struct CompileInfo<'a> {
+    pub duration: Duration,
+    pub symbol_table: HashMap<&'a str, u12>,
+    pub binary: Vec<u6>,
+    pub instructions: Vec<Instruction>,
+    pub ir: Vec<Ir<'a>>,
+    pub tokens: Vec<Token>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
-pub fn compile_to_file(source: &Path, destination: &Path, quiet: bool) -> Result<(), Error> {
-    if let Some(instructions) = compile_impl(source, quiet)? {
-        fs::write(
-            destination,
-            instructions.iter().map(|i| i.value()).collect::<Vec<u8>>(),
-        )?;
-    }
+pub fn compile_to_binary(source: &str) -> CompileInfo {
+    let start_time = Instant::now();
 
-    Ok(())
+    let tokens = Cursor::new(&source).tokenize().collect();
+
+    let parser_result = Parser::new(&source).parse();
+    let (ir, symbol_table, mut diagnostics) = (
+        parser_result.ir,
+        parser_result.symbol_table,
+        parser_result.diagnostics,
+    );
+
+    let (instructions, more_diagnostics) = assemble(&ir, &symbol_table);
+    diagnostics.extend(more_diagnostics);
+
+    let binary = instructions.iter().map(|i| i.raw_value()).collect();
+
+    let duration = start_time.elapsed();
+
+    CompileInfo {
+        duration,
+        symbol_table,
+        binary,
+        instructions,
+        ir,
+        tokens,
+        diagnostics,
+    }
 }

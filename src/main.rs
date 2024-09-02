@@ -3,13 +3,12 @@ use std::path::PathBuf;
 
 mod compilation;
 mod emulation;
+mod interface;
 
 mod character_encoding;
 mod errors;
 mod instruction;
 
-use compilation::{compile_impl, compile_to_file};
-use emulation::{emulate_file, emulate_impl};
 use errors::Error;
 
 /// An emulator, compiler, and interpreter for the Diana Compiled Language
@@ -52,23 +51,17 @@ fn main() -> Result<(), Error> {
     let args = Cli::parse();
 
     match args.command {
-        Command::Interpret { source, quiet } => {
-            emulate_impl(compile_impl(&source, quiet)?.unwrap());
-        }
-        Command::Emulate { source } => {
-            emulate_file(&source)?;
-        }
+        Command::Interpret { source, quiet } => interface::interpret(&source, quiet)?,
+        Command::Emulate { source } => interface::emulate(&source)?,
         Command::Compile {
             source,
             destination,
             quiet,
-        } => {
-            compile_to_file(
-                &source,
-                &destination.unwrap_or_else(|| source.with_extension("")),
-                quiet,
-            )?;
-        }
+        } => interface::compile(
+            &source,
+            &destination.unwrap_or_else(|| source.with_extension("")),
+            quiet,
+        )?,
     }
 
     Ok(())
