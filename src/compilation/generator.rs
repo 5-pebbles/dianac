@@ -123,14 +123,14 @@ impl<'a> IrGenerator<'a> {
     pub fn shl(&mut self, register: IrRegister) -> &mut Self {
         self.rol(register).and(
             MEM_REGISTER,
-            Either::Immediate(Immediate::Constant(u6::new(0b011111))),
+            Either::Immediate(Immediate::Constant(u6::new(0b111110))),
         )
     }
 
     pub fn shr(&mut self, register: IrRegister) -> &mut Self {
         self.ror(register).and(
             MEM_REGISTER,
-            Either::Immediate(Immediate::Constant(u6::new(0b111110))),
+            Either::Immediate(Immediate::Constant(u6::new(0b011111))),
         )
     }
 
