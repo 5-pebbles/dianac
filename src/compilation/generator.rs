@@ -238,6 +238,10 @@ impl<'a> IrGenerator<'a> {
     }
 
     // Miscellaneous
+    pub fn nop(&mut self) -> &mut Self {
+        self.push(Ir::Nop)
+    }
+
     pub fn hlt(&mut self) -> &mut Self {
         self.push(Ir::Hlt)
     }

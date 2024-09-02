@@ -187,7 +187,10 @@ impl<'a> Parser<'a> {
                 self.ir.lih(conditional, address_tuple);
             }
             // Miscellaneous
-            Keyword::HLT => {
+            Keyword::Nop => {
+                self.ir.nop();
+            }
+            Keyword::Hlt => {
                 self.ir.hlt();
             }
         };

@@ -53,6 +53,7 @@ fn assemble_ir(ir: &Ir, symbol_table: &HashMap<&str, u12>) -> Result<Vec<Instruc
         Ir::Lod(address) => handle_addressable(Operation::Load, address, symbol_table),
         Ir::Sto(address) => handle_addressable(Operation::Store, address, symbol_table),
         Ir::Set(immediate) => handle_set(immediate, symbol_table),
+        Ir::Nop => Ok(handle_nop()),
         Ir::Hlt => Ok(handle_hlt()),
     }
 }
@@ -117,6 +118,10 @@ fn handle_set(
     Ok(vec![Instruction::new_with_raw_value(
         immediate.flatten(symbol_table)?,
     )])
+}
+
+fn handle_nop() -> Vec<Instruction> {
+    vec![Instruction::new_with_raw_value(u6::new(0b001100))]
 }
 
 fn handle_hlt() -> Vec<Instruction> {

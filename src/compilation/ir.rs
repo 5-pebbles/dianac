@@ -15,6 +15,7 @@ pub enum Ir<'a> {
     Lod(AddressTuple<'a>),
     Sto(AddressTuple<'a>),
     Set(Immediate<'a>),
+    Nop,
     Hlt,
 }
 
@@ -26,6 +27,7 @@ impl<'a> Ir<'a> {
                 u12::new(1) + address.len()
             }
             Self::Set(_) => u12::new(1),
+            Self::Nop => u12::new(1),
             Self::Hlt => u12::new(1),
         }
     }

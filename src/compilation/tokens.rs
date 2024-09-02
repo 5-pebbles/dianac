@@ -100,7 +100,8 @@ pub enum Keyword {
     Lab,
     Lih,
     // Miscellaneous
-    HLT,
+    Nop,
+    Hlt,
 }
 
 #[derive(Debug, PartialEq, Clone)]
