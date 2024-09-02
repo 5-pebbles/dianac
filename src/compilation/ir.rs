@@ -60,7 +60,11 @@ pub enum IrRegister {
 }
 
 #[derive(Debug, Clone)]
-pub struct Conditional<'a>(pub Either<'a>, pub ConditionalKind, pub Either<'a>);
+pub struct Conditional<'a> {
+    pub left: Either<'a>,
+    pub kind: ConditionalKind,
+    pub right: Either<'a>,
+}
 
 #[derive(Debug, Clone)]
 pub enum ConditionalKind {

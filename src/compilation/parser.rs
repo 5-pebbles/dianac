@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
             unexpected => return Err(unexpected_token_error(unexpected, "OpenBracket")),
         }
 
-        let first = self.parse_either()?;
+        let left = self.parse_either()?;
         let condition = match self.cursor.advance_token() {
             token_kind!(TokenKind::Eq) => match self.cursor.advance_token() {
                 token_kind!(TokenKind::Eq) => ConditionalKind::Eq,
@@ -277,10 +277,14 @@ impl<'a> Parser<'a> {
                 ))
             }
         };
-        let last = self.parse_either()?;
+        let right = self.parse_either()?;
 
         match self.cursor.advance_token() {
-            token_kind!(TokenKind::CloseBracket) => Ok(Conditional(first, condition, last)),
+            token_kind!(TokenKind::CloseBracket) => Ok(Conditional {
+                left,
+                kind: condition,
+                right,
+            }),
             unexpected => Err(unexpected_token_error(unexpected, "CloseBracket")),
         }
     }
