@@ -247,7 +247,7 @@ impl<'a> Default for IrGenerator<'a> {
     fn default() -> Self {
         Self {
             ir: Vec::default(),
-            next_address: u12::new(1),
+            next_address: u12::new(0),
             symbol_table: HashMap::default(),
         }
     }
