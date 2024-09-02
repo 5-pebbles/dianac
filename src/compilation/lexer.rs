@@ -7,6 +7,10 @@ use crate::compilation::{
 
 const EOF_CHAR: char = '\0';
 
+fn is_ident(character: char) -> bool {
+    character.is_alphanumeric() || character == '_'
+}
+
 #[derive(Debug, Clone)]
 pub struct Cursor<'a> {
     len: usize,
@@ -15,6 +19,10 @@ pub struct Cursor<'a> {
 }
 
 impl<'a> Cursor<'a> {
+    pub fn new(source: &'a str) -> Self {
+        Self::from(source)
+    }
+
     pub fn tokenize(mut self) -> impl Iterator<Item = Token> + 'a {
         std::iter::from_fn(move || {
             let token = self.advance_token();
@@ -168,10 +176,6 @@ impl<'a> From<&'a str> for Cursor<'a> {
             chars: value.chars(),
         }
     }
-}
-
-fn is_ident(character: char) -> bool {
-    character.is_alphanumeric() || character == '_'
 }
 
 #[cfg(test)]
