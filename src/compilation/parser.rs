@@ -50,6 +50,10 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    pub fn new(raw: &'a str) -> Self {
+        Self::from(raw)
+    }
+
     pub fn parse(mut self) -> ParseResult<'a> {
         let mut diagnostics = Vec::new();
         while !self.cursor.is_eof() {
