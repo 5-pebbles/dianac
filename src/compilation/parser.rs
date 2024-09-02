@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         let keyword = match self.cursor.advance_token() {
             token_kind!(TokenKind::NewLine) => return Ok(()),
             token_kind!(TokenKind::LineComment) => {
-                self.parse_end_of_line()?;
+                self.parse_end_of_line(false)?;
                 return Ok(());
             }
             token_kind!(TokenKind::Keyword(keyword)) => keyword,
@@ -188,7 +188,7 @@ impl<'a> Parser<'a> {
             }
         };
 
-        self.parse_end_of_line()?;
+        self.parse_end_of_line(true)?;
 
         Ok(())
     }
@@ -403,10 +403,20 @@ impl<'a> Parser<'a> {
             })
     }
 
-    pub fn parse_end_of_line(&mut self) -> Result<(), Diagnostic> {
+    pub fn parse_end_of_line(&mut self, allow_trailing_comment: bool) -> Result<(), Diagnostic> {
         match self.cursor.advance_token() {
             token_kind!(TokenKind::NewLine | TokenKind::Eof) => Ok(()),
-            token => Err(unexpected_token_error(token, "NewLine | Eof | Comment")),
+            token_kind!(TokenKind::LineComment) if allow_trailing_comment => {
+                self.parse_end_of_line(false)
+            }
+            token => Err(unexpected_token_error(
+                token,
+                if allow_trailing_comment {
+                    "NewLine | Eof | Comment"
+                } else {
+                    "NewLine | Eof"
+                },
+            )),
         }
     }
 }
