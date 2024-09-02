@@ -59,7 +59,7 @@ The Diana II is 6-bit minimal instruction set computer designed around using `NO
 
 - **address size:** 12-bits (two 6-bit operands, first is higher order).
 
-- **unique instructions:** 5.
+- **unique instructions:** 6.
 
 
 ### Instructions
@@ -83,7 +83,7 @@ The first operand of NOR can't be immediate, so that allows another four instruc
 
 | Binary |   Instruction   | Description |
 |--------|-----------------|-------------|
-| 001100 | `---` | Reserved for future use. |
+| 001100 | `NOP` | No operation; used for padding. |
 | 001101 | `---` | Reserved for future use. |
 | 001110 | `---` | Reserved for future use. |
 | 001111 | `HLT` | Halts the CPU until the next interrupt. |
@@ -298,4 +298,5 @@ These keywords simply load the corresponding address from the right and left rot
 
 | Keyword | Description | Notes |
 |---------|-------------|-------|
+| `NOP` | No operation; used for padding | - |
 | `HLT` | halts the CPU until the next interrupt | - |
