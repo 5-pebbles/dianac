@@ -1,6 +1,9 @@
 use clap::{Parser as ArgParser, Subcommand};
 use std::path::PathBuf;
 
+#[cfg(test)]
+mod tests;
+
 mod compilation;
 mod emulation;
 mod interface;
