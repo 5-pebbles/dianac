@@ -33,10 +33,9 @@ An emulator, compiler, and interpreter for the Diana Compiled Language
 Usage: dianac <COMMAND>
 
 Commands:
-  interpret  Interprate a program directly from source
-  emulate    Emulate the execution from a binary
-  compile    Compile a binary without execution
-  help       Print this message or the help of the given subcommand(s)
+  repl     Start the interactive emulation REPL
+  compile  Compile a static binary (6-bit bytes are padded with zeros)
+  help     Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
