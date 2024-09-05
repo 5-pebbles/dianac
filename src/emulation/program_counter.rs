@@ -2,6 +2,8 @@ use std::{rc::Rc, sync::Mutex};
 
 use arbitrary_int::{u6, Number};
 
+// TODO add some docs
+
 #[derive(Debug, Clone, Default)]
 pub struct ProgramCounter(Rc<Mutex<(u6, u6)>>);
 

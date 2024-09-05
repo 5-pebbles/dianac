@@ -14,14 +14,15 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(program_counter: ProgramCounter, data: Vec<u6>) -> Self {
-        let mut ram = [u6::default(); RAM_SIZE];
-        ram[..data.len()].copy_from_slice(&data);
-
+    pub fn new(program_counter: ProgramCounter) -> Self {
         Self {
             program_counter,
-            ram,
+            ram: [u6::default(); RAM_SIZE],
         }
+    }
+
+    pub fn store_array(&mut self, offset: usize, machine_code: &[u6]) {
+        self.ram[offset..offset + machine_code.len()].copy_from_slice(&machine_code);
     }
 
     pub fn read(&self, address: (u6, u6)) -> u6 {

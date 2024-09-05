@@ -37,6 +37,7 @@ pub fn encode_character(character: &char) -> Option<&'static u6> {
     character_table().get_by_right(character)
 }
 
+#[allow(dead_code)]
 pub fn decode_character(numeric: &u6) -> &'static char {
     character_table().get_by_left(numeric).unwrap()
 }

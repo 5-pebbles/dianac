@@ -16,9 +16,9 @@ mod ir;
 mod tokens;
 
 mod assembler;
-mod generator;
-mod lexer;
-mod parser;
+pub mod generator;
+pub mod lexer;
+pub mod parser;
 
 pub use diagnostic::{DiagKind, DiagLevel, Diagnostic};
 
