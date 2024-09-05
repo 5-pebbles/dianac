@@ -91,11 +91,11 @@ macro_rules! about {
     (commands) => {
         concat!(
             bold!("- run | r [speed]:"),
-            " run at speed (hz) until next halt\n",
+            " run at speed (hz) until halt\n",
             bold!("- step | s:"),
             " step one instruction\n",
             bold!("- interpret | i <dcl_source> [offset]:"),
-            " compile and load at the given offset\n",
+            " compile and store at the given offset\n",
             bold!("- help | h:"),
             " print help\n",
             bold!("- quit | q:"),
@@ -132,7 +132,6 @@ pub fn emulation_repl() -> Result<(), Error> {
                     0.0
                 };
 
-                state.consume_instruction();
                 while !state.is_halt() {
                     sleep(Duration::from_secs_f64(sleep_time));
                     state.consume_instruction();

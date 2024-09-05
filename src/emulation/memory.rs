@@ -9,8 +9,8 @@ fn tuple_as_usize(tuple: (u6, u6)) -> usize {
 }
 
 pub struct Memory {
-    program_counter: ProgramCounter,
-    ram: [u6; RAM_SIZE],
+    pub program_counter: ProgramCounter,
+    pub ram: [u6; RAM_SIZE],
 }
 
 impl Memory {

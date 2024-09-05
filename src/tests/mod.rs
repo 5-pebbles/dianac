@@ -1,1 +1,1 @@
-// TODO Write some fucking tests
+mod halt_and_nop;

@@ -26,8 +26,7 @@ impl InteractiveState {
         }
     }
 
-    pub fn consume_until_next_halt(&mut self) {
-        self.consume_instruction();
+    pub fn consume_until_halt(&mut self) {
         while !self.is_halt() {
             self.consume_instruction();
         }
