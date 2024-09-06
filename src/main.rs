@@ -19,6 +19,7 @@ mod emulation;
 mod character_encoding;
 mod errors;
 mod instruction;
+mod utils;
 
 use errors::Error;
 

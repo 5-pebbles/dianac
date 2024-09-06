@@ -2,6 +2,8 @@ use std::{rc::Rc, sync::Mutex};
 
 use arbitrary_int::{u6, Number};
 
+use crate::utils::tuple_as_usize;
+
 // TODO add some docs
 
 #[derive(Debug, Clone, Default)]

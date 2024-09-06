@@ -1,12 +1,10 @@
 use arbitrary_int::u6;
 
+use crate::utils::tuple_as_usize;
+
 use super::program_counter::ProgramCounter;
 
 const RAM_SIZE: usize = 3902;
-
-fn tuple_as_usize(tuple: (u6, u6)) -> usize {
-    ((u16::from(tuple.0) << 6) | u16::from(tuple.1)) as usize
-}
 
 pub struct Memory {
     pub program_counter: ProgramCounter,
