@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use arbitrary_int::{u12, u6};
 
@@ -10,6 +10,8 @@ use crate::{
     instruction::{Instruction, Operation, Register},
 };
 
+// TODO refactor
+
 fn ir_into_register(register: &IrRegister) -> Register {
     match register {
         IrRegister::A => Register::A,
@@ -20,7 +22,7 @@ fn ir_into_register(register: &IrRegister) -> Register {
 
 fn get_register_or_immediate(
     either: &Either,
-    symbol_table: &HashMap<&str, u12>,
+    symbol_table: &HashMap<Arc<str>, u12>,
 ) -> Result<(Register, Option<u6>), Diagnostic> {
     Ok(match either {
         Either::Register(register) => (ir_into_register(register), None),
@@ -31,8 +33,8 @@ fn get_register_or_immediate(
 }
 
 pub fn assemble<'a>(
-    ir: impl IntoIterator<Item = &'a Ir<'a>>,
-    symbol_table: &HashMap<&str, u12>,
+    ir: impl IntoIterator<Item = &'a Ir>,
+    symbol_table: &HashMap<Arc<str>, u12>,
 ) -> (Vec<Instruction>, Vec<Diagnostic>) {
     let mut instructions = Vec::new();
     let mut diagnostics = Vec::new();
@@ -46,7 +48,10 @@ pub fn assemble<'a>(
     (instructions, diagnostics)
 }
 
-fn assemble_ir(ir: &Ir, symbol_table: &HashMap<&str, u12>) -> Result<Vec<Instruction>, Diagnostic> {
+fn assemble_ir(
+    ir: &Ir,
+    symbol_table: &HashMap<Arc<str>, u12>,
+) -> Result<Vec<Instruction>, Diagnostic> {
     match ir {
         Ir::Nor(register, either) => handle_nor(register, either, symbol_table),
         Ir::Pc(address) => handle_addressable(Operation::Pc, address, symbol_table),
@@ -69,7 +74,7 @@ macro_rules! if_let_push_some {
 fn handle_nor(
     register: &IrRegister,
     either: &Either,
-    symbol_table: &HashMap<&str, u12>,
+    symbol_table: &HashMap<Arc<str>, u12>,
 ) -> Result<Vec<Instruction>, Diagnostic> {
     let mut instructions = Vec::new();
     let (second_register, immediate) = get_register_or_immediate(either, symbol_table)?;
@@ -90,7 +95,7 @@ fn handle_nor(
 fn handle_addressable(
     operation: Operation,
     address: &AddressTuple,
-    symbol_table: &HashMap<&str, u12>,
+    symbol_table: &HashMap<Arc<str>, u12>,
 ) -> Result<Vec<Instruction>, Diagnostic> {
     let mut instructions = Vec::new();
 
@@ -113,7 +118,7 @@ fn handle_addressable(
 
 fn handle_set(
     immediate: &Immediate,
-    symbol_table: &HashMap<&str, u12>,
+    symbol_table: &HashMap<Arc<str>, u12>,
 ) -> Result<Vec<Instruction>, Diagnostic> {
     Ok(vec![Instruction::new_with_raw_value(
         immediate.flatten(symbol_table)?,

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use arbitrary_int::{u12, u6};
 use strum::EnumIter;
@@ -9,17 +9,17 @@ use crate::compilation::{
 };
 
 #[derive(Debug, Clone)]
-pub enum Ir<'a> {
-    Nor(IrRegister, Either<'a>),
-    Pc(AddressTuple<'a>),
-    Lod(AddressTuple<'a>),
-    Sto(AddressTuple<'a>),
-    Set(Immediate<'a>),
+pub enum Ir {
+    Nor(IrRegister, Either),
+    Pc(AddressTuple),
+    Lod(AddressTuple),
+    Sto(AddressTuple),
+    Set(Immediate),
     Nop,
     Hlt,
 }
 
-impl<'a> Ir<'a> {
+impl Ir {
     pub fn len(&self) -> u12 {
         match self {
             Self::Nor(_, either) => u12::new(1) + either.len(),
@@ -34,21 +34,21 @@ impl<'a> Ir<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct AddressTuple<'a>(pub Either<'a>, pub Either<'a>);
+pub struct AddressTuple(pub Either, pub Either);
 
-impl<'a> AddressTuple<'a> {
+impl AddressTuple {
     pub fn len(&self) -> u12 {
         self.0.len() + self.1.len()
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Either<'a> {
+pub enum Either {
     Register(IrRegister),
-    Immediate(Immediate<'a>),
+    Immediate(Immediate),
 }
 
-impl<'a> Either<'a> {
+impl Either {
     pub fn len(&self) -> u12 {
         u12::new(matches!(self, Self::Immediate(_)) as u16)
     }
@@ -62,13 +62,13 @@ pub enum IrRegister {
 }
 
 #[derive(Debug, Clone)]
-pub struct Conditional<'a> {
-    pub left: Either<'a>,
+pub struct Conditional {
+    pub left: Either,
     pub kind: ConditionalKind,
-    pub right: Either<'a>,
+    pub right: Either,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConditionalKind {
     Eq,
     NotEq,
@@ -79,19 +79,19 @@ pub enum ConditionalKind {
 }
 
 #[derive(Debug, Clone)]
-pub enum Immediate<'a> {
+pub enum Immediate {
     Constant(u6),
-    LabelP0(&'a str, Span),
-    LabelP1(&'a str, Span),
-    Not(Box<Immediate<'a>>),
-    And(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Or(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Add(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Sub(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Mul(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Div(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Rol(Box<Immediate<'a>>, Box<Immediate<'a>>),
-    Ror(Box<Immediate<'a>>, Box<Immediate<'a>>),
+    LabelP0(Arc<str>, Span),
+    LabelP1(Arc<str>, Span),
+    Not(Box<Immediate>),
+    And(Box<Immediate>, Box<Immediate>),
+    Or(Box<Immediate>, Box<Immediate>),
+    Add(Box<Immediate>, Box<Immediate>),
+    Sub(Box<Immediate>, Box<Immediate>),
+    Mul(Box<Immediate>, Box<Immediate>),
+    Div(Box<Immediate>, Box<Immediate>),
+    Rol(Box<Immediate>, Box<Immediate>),
+    Ror(Box<Immediate>, Box<Immediate>),
 }
 
 fn u12_to_u6(value: u12) -> u6 {
@@ -106,8 +106,8 @@ fn undefined_label_error(span: Span) -> Diagnostic {
     }
 }
 
-impl<'a> Immediate<'a> {
-    pub fn flatten(&self, symbol_table: &HashMap<&'a str, u12>) -> Result<u6, Diagnostic> {
+impl Immediate {
+    pub fn flatten(&self, symbol_table: &HashMap<Arc<str>, u12>) -> Result<u6, Diagnostic> {
         Ok(match self {
             Immediate::Constant(value) => *value,
             Immediate::LabelP0(value, span) => u12_to_u6(

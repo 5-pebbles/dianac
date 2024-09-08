@@ -1,5 +1,8 @@
 use arbitrary_int::{u12, u6};
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use std::{
+    collections::{hash_map::Entry, HashMap, HashSet},
+    sync::Arc,
+};
 use strum::IntoEnumIterator;
 
 use super::{
@@ -39,20 +42,20 @@ fn generate_arithmetic_register_distribution(
 }
 
 #[derive(Debug, Clone)]
-pub struct IrGenerator<'a> {
-    ir: Vec<Ir<'a>>,
+pub struct IrGenerator {
+    ir: Vec<Ir>,
     next_address: u12,
-    symbol_table: HashMap<&'a str, u12>,
+    symbol_table: HashMap<Arc<str>, u12>,
 }
 
-impl<'a> IrGenerator<'a> {
-    pub fn push(&mut self, value: Ir<'a>) -> &mut Self {
+impl IrGenerator {
+    pub fn push(&mut self, value: Ir) -> &mut Self {
         self.next_address += value.len();
         self.ir.push(value);
         self
     }
 
-    pub fn finalize(self) -> (Vec<Ir<'a>>, HashMap<&'a str, u12>) {
+    pub fn finalize(self) -> (Vec<Ir>, HashMap<Arc<str>, u12>) {
         (self.ir, self.symbol_table)
     }
 
@@ -63,7 +66,7 @@ impl<'a> IrGenerator<'a> {
         self.nor(register, Either::Register(register))
     }
 
-    pub fn and(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn and(&mut self, register: IrRegister, either: Either) -> &mut Self {
         let negated_either = match either {
             Either::Register(register) => {
                 self.not(register);
@@ -75,23 +78,23 @@ impl<'a> IrGenerator<'a> {
         self.not(register).nor(register, negated_either)
     }
 
-    pub fn nand(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn nand(&mut self, register: IrRegister, either: Either) -> &mut Self {
         self.and(register, either).not(register)
     }
 
-    pub fn or(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn or(&mut self, register: IrRegister, either: Either) -> &mut Self {
         self.nor(register, either).not(register)
     }
 
-    pub fn nor(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn nor(&mut self, register: IrRegister, either: Either) -> &mut Self {
         self.push(Ir::Nor(register, either))
     }
 
-    pub fn xor(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn xor(&mut self, register: IrRegister, either: Either) -> &mut Self {
         self.nxor(register, either).not(register)
     }
 
-    pub fn nxor(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn nxor(&mut self, register: IrRegister, either: Either) -> &mut Self {
         let free_register = if let Either::Register(other_register) = either {
             free_register!(register, other_register).unwrap()
         } else {
@@ -135,7 +138,7 @@ impl<'a> IrGenerator<'a> {
     }
 
     // Arithmetic
-    pub fn add(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn add(&mut self, register: IrRegister, either: Either) -> &mut Self {
         // TODO this could be optimized further (mov followed by and should be expanded)
         let carry = MEM_REGISTER;
         let (augend, addend) =
@@ -161,7 +164,7 @@ impl<'a> IrGenerator<'a> {
         self.mov(register, Either::Register(augend))
     }
 
-    pub fn sub(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn sub(&mut self, register: IrRegister, either: Either) -> &mut Self {
         let carry = MEM_REGISTER;
         let (minuend, subtrahend) =
             generate_arithmetic_register_distribution(register, either.clone(), carry);
@@ -189,11 +192,11 @@ impl<'a> IrGenerator<'a> {
     }
 
     // Memory
-    pub fn set(&mut self, immediate: Immediate<'a>) -> &mut Self {
+    pub fn set(&mut self, immediate: Immediate) -> &mut Self {
         self.push(Ir::Set(immediate))
     }
 
-    pub fn mov(&mut self, register: IrRegister, either: Either<'a>) -> &mut Self {
+    pub fn mov(&mut self, register: IrRegister, either: Either) -> &mut Self {
         if matches!(either, Either::Register(ref value) if *value == register) {
             return self;
         }
@@ -206,20 +209,20 @@ impl<'a> IrGenerator<'a> {
         .not(register)
     }
 
-    pub fn lod(&mut self, address: AddressTuple<'a>) -> &mut Self {
+    pub fn lod(&mut self, address: AddressTuple) -> &mut Self {
         self.push(Ir::Lod(address))
     }
 
-    pub fn sto(&mut self, address: AddressTuple<'a>) -> &mut Self {
+    pub fn sto(&mut self, address: AddressTuple) -> &mut Self {
         self.push(Ir::Sto(address))
     }
 
     // Jump
-    pub fn pc(&mut self, address: AddressTuple<'a>) -> &mut Self {
+    pub fn pc(&mut self, address: AddressTuple) -> &mut Self {
         self.push(Ir::Pc(address))
     }
 
-    pub fn lab(&mut self, label: &'a str, span: Span) -> Result<&mut Self, Diagnostic> {
+    pub fn lab(&mut self, label: Arc<str>, span: Span) -> Result<&mut Self, Diagnostic> {
         match self.symbol_table.entry(label) {
             Entry::Vacant(entry) => {
                 entry.insert(self.next_address);
@@ -233,7 +236,7 @@ impl<'a> IrGenerator<'a> {
         }
     }
 
-    pub fn lih(&mut self, condition: Conditional, address: AddressTuple<'a>) -> &mut Self {
+    pub fn lih(&mut self, condition: Conditional, address: AddressTuple) -> &mut Self {
         todo!()
     }
 
@@ -247,7 +250,7 @@ impl<'a> IrGenerator<'a> {
     }
 }
 
-impl<'a> Default for IrGenerator<'a> {
+impl Default for IrGenerator {
     fn default() -> Self {
         Self {
             ir: Vec::default(),

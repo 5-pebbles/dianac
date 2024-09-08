@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::IntErrorKind};
+use std::{collections::HashMap, num::IntErrorKind, sync::Arc};
 
 use arbitrary_int::{u12, u6};
 
@@ -36,9 +36,9 @@ pub fn u6_from_str_radix(str: &str, radix: u32) -> Result<u6, IntErrorKind> {
         .map_err(|_| IntErrorKind::PosOverflow)
 }
 
-pub struct ParseResult<'a> {
-    pub ir: Vec<Ir<'a>>,
-    pub symbol_table: HashMap<&'a str, u12>,
+pub struct ParseResult {
+    pub ir: Vec<Ir>,
+    pub symbol_table: HashMap<Arc<str>, u12>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -46,7 +46,7 @@ pub struct ParseResult<'a> {
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
     raw: &'a str,
-    ir: IrGenerator<'a>,
+    ir: IrGenerator,
 }
 
 impl<'a> Parser<'a> {
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
         Self::from(raw)
     }
 
-    pub fn parse(mut self) -> ParseResult<'a> {
+    pub fn parse(mut self) -> ParseResult {
         let mut diagnostics = Vec::new();
         while !self.cursor.is_eof() {
             self.advance_ir().unwrap_or_else(|e| {
@@ -200,25 +200,25 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    pub fn parse_identifier(&mut self) -> Result<(&'a str, Span), Diagnostic> {
+    pub fn parse_identifier(&mut self) -> Result<(Arc<str>, Span), Diagnostic> {
         match self.cursor.advance_token() {
             token @ token_kind!(TokenKind::Identifier) => {
-                Ok((&self.raw[token.span.as_range()], token.span))
+                Ok((Arc::from(&self.raw[token.span.as_range()]), token.span))
             }
             unexpected => Err(unexpected_token_error(unexpected, "Identifier")),
         }
     }
 
-    pub fn parse_address_tuple(&mut self) -> Result<AddressTuple<'a>, Diagnostic> {
+    pub fn parse_address_tuple(&mut self) -> Result<AddressTuple, Diagnostic> {
         let mut clone = self.cursor.clone();
         if clone.advance_token().kind == TokenKind::Identifier
             && clone.advance_token().kind != TokenKind::Colon
         {
             let token = self.cursor.advance_token();
             let span = token.span;
-            let label = &self.raw[span.as_range()];
+            let label: Arc<str> = Arc::from(&self.raw[span.as_range()]);
             Ok(AddressTuple(
-                Either::Immediate(Immediate::LabelP0(label, span)),
+                Either::Immediate(Immediate::LabelP0(label.clone(), span)),
                 Either::Immediate(Immediate::LabelP1(label, span)),
             ))
         } else {
@@ -226,7 +226,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_either(&mut self) -> Result<Either<'a>, Diagnostic> {
+    pub fn parse_either(&mut self) -> Result<Either, Diagnostic> {
         Ok(
             if let TokenKind::Register(_) = self.cursor.clone().advance_token().kind {
                 Either::Register(self.parse_register()?)
@@ -296,7 +296,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_immediate(&mut self) -> Result<Immediate<'a>, Diagnostic> {
+    pub fn parse_immediate(&mut self) -> Result<Immediate, Diagnostic> {
         match self.cursor.advance_token() {
             token_kind!(TokenKind::OpenParen) => {
                 let immediate = self.parse_immediate()?;
@@ -321,7 +321,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_block(&mut self, immediate: Immediate<'a>) -> Result<Immediate<'a>, Diagnostic> {
+    fn parse_block(&mut self, immediate: Immediate) -> Result<Immediate, Diagnostic> {
         let mut clone = self.cursor.clone();
         let operator_builder = match clone.advance_token().kind {
             TokenKind::And => |first, second| Immediate::And(first, second),
@@ -353,7 +353,7 @@ impl<'a> Parser<'a> {
         span: Span,
         base: &Base,
         prefix_len: &usize,
-    ) -> Result<Immediate<'a>, Diagnostic> {
+    ) -> Result<Immediate, Diagnostic> {
         let radix = match base {
             Base::Binary => 2,
             Base::Decimal => 10,
@@ -370,7 +370,7 @@ impl<'a> Parser<'a> {
         Ok(Immediate::Constant(numeric))
     }
 
-    fn parse_label(&mut self, first: Token) -> Result<Immediate<'a>, Diagnostic> {
+    fn parse_label(&mut self, first: Token) -> Result<Immediate, Diagnostic> {
         match self.cursor.advance_token() {
             token_kind!(TokenKind::Colon) => (),
             unexpected => return Err(unexpected_token_error(unexpected, "Colon")),
@@ -379,11 +379,11 @@ impl<'a> Parser<'a> {
         let num = self.cursor.advance_token();
         match &self.raw[num.span.as_range()] {
             "0" => Ok(Immediate::LabelP0(
-                &self.raw[first.span.as_range()],
+                Arc::from(&self.raw[first.span.as_range()]),
                 first.span.merge(num.span),
             )),
             "1" => Ok(Immediate::LabelP1(
-                &self.raw[first.span.as_range()],
+                Arc::from(&self.raw[first.span.as_range()]),
                 first.span.merge(num.span),
             )),
             _ => Err(unexpected_token_error(num, "Numeric(Decimal(`0` | `1`))")),
@@ -394,7 +394,7 @@ impl<'a> Parser<'a> {
         &mut self,
         span: Span,
         terminated: &bool,
-    ) -> Result<Immediate<'a>, Diagnostic> {
+    ) -> Result<Immediate, Diagnostic> {
         if !terminated {
             return Err(Diagnostic {
                 level: DiagLevel::Fatal,

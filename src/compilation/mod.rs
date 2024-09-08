@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -22,12 +23,12 @@ pub mod parser;
 
 pub use diagnostic::{DiagKind, DiagLevel, Diagnostic};
 
-pub struct CompileInfo<'a> {
+pub struct CompileInfo {
     pub duration: Duration,
-    pub symbol_table: HashMap<&'a str, u12>,
+    pub symbol_table: HashMap<Arc<str>, u12>,
     pub binary: Vec<u6>,
     pub instructions: Vec<Instruction>,
-    pub ir: Vec<Ir<'a>>,
+    pub ir: Vec<Ir>,
     pub tokens: Vec<Token>,
     pub diagnostics: Vec<Diagnostic>,
 }
