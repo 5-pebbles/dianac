@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 
 use super::{
     diagnostic::{DiagKind, DiagLevel, Diagnostic},
-    ir::{AddressTuple, Conditional, Either, Immediate, Ir, IrRegister},
+    ir::{AddressTuple, Conditional, ConditionalKind, Either, Immediate, Ir, IrRegister},
     span::Span,
 };
 
@@ -39,6 +39,15 @@ fn generate_arithmetic_register_distribution(
 
     let secondary = free_register!(destination, carry).unwrap();
     (destination, secondary)
+}
+
+pub fn unique_label() -> Arc<str> {
+    static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let label = format!(
+        "#{}",
+        COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    );
+    Arc::from(label)
 }
 
 #[derive(Debug, Clone)]
@@ -237,7 +246,58 @@ impl IrGenerator {
     }
 
     pub fn lih(&mut self, condition: Conditional, address: AddressTuple) -> &mut Self {
-        todo!()
+        // TODO optimize
+        let helper = free_register!(MEM_REGISTER).unwrap();
+
+        match condition.kind {
+            ConditionalKind::Eq | ConditionalKind::NotEq => {
+                if matches!(condition.left, Either::Register(left) if left == MEM_REGISTER) {
+                    self.sub(MEM_REGISTER, condition.right)
+                } else {
+                    self.mov(MEM_REGISTER, condition.right)
+                        .sub(MEM_REGISTER, condition.left)
+                };
+
+                self.mov(helper, Either::Immediate(Immediate::Constant(u6::new(0))));
+
+                (0..6).into_iter().for_each(|_| {
+                    self.or(helper, Either::Register(MEM_REGISTER))
+                        .ror(MEM_REGISTER);
+                });
+
+                self.and(
+                    helper,
+                    Either::Immediate(Immediate::Constant(u6::new(0b000001))),
+                );
+
+                if condition.kind == ConditionalKind::NotEq {
+                    self.not(helper).and(
+                        helper,
+                        Either::Immediate(Immediate::Constant(u6::new(0b000001))),
+                    );
+                }
+            }
+            _ => todo!(),
+        }
+
+        // At this point helper should contain zero if we are going to jump else one
+        self.rol(helper).or(MEM_REGISTER, Either::Register(helper));
+        let label = unique_label();
+        self.add(
+            MEM_REGISTER,
+            Either::Immediate(Immediate::LabelP1(label.clone(), Span::new(0, 0))),
+        )
+        .pc(AddressTuple(
+            Either::Immediate(Immediate::LabelP0(label.clone(), Span::new(0, 0))),
+            Either::Register(helper),
+        ));
+
+        if self.next_address & u12::new(0b111111) == u12::new(0b111111) {
+            // skip 6-bit overflow
+            self.nop();
+        }
+
+        self.lab(label, Span::new(0, 0)).unwrap().pc(address)
     }
 
     // Miscellaneous
