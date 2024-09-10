@@ -113,7 +113,7 @@ impl IrGenerator {
         self.mov(free_register, Either::Register(register))
             .nor(free_register, either.clone())
             .nor(register, Either::Register(free_register))
-            .nor(register, either)
+            .nor(free_register, either)
             .nor(register, Either::Register(free_register))
     }
 
