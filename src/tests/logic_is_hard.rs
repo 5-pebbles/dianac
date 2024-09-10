@@ -1,5 +1,3 @@
-// I am about to fall asleep... zzz
-
 use arbitrary_int::{u12, u6};
 
 use crate::{compilation::compile_to_binary, emulation::InteractiveState, utils::tuple_as_u12};

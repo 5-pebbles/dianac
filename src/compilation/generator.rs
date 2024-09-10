@@ -205,6 +205,13 @@ impl IrGenerator {
         self.push(Ir::Set(immediate))
     }
 
+    pub fn zero(&mut self, register: IrRegister) -> &mut Self {
+        self.nor(
+            register,
+            Either::Immediate(Immediate::Constant(u6::new(0b111111))),
+        )
+    }
+
     pub fn mov(&mut self, register: IrRegister, either: Either) -> &mut Self {
         if matches!(either, Either::Register(ref value) if *value == register) {
             return self;
@@ -246,45 +253,43 @@ impl IrGenerator {
     }
 
     pub fn lih(&mut self, condition: Conditional, address: AddressTuple) -> &mut Self {
-        // TODO optimize
-        let helper = free_register!(MEM_REGISTER).unwrap();
-
         match condition.kind {
             ConditionalKind::Eq | ConditionalKind::NotEq => {
                 if matches!(condition.left, Either::Register(left) if left == MEM_REGISTER) {
-                    self.sub(MEM_REGISTER, condition.right)
+                    self.xor(MEM_REGISTER, condition.right)
                 } else {
                     self.mov(MEM_REGISTER, condition.right)
-                        .sub(MEM_REGISTER, condition.left)
+                        .xor(MEM_REGISTER, condition.left)
                 };
-
-                self.mov(helper, Either::Immediate(Immediate::Constant(u6::new(0))));
-
-                (0..6).into_iter().for_each(|_| {
-                    self.or(helper, Either::Register(MEM_REGISTER))
-                        .ror(MEM_REGISTER);
-                });
-
-                self.and(
-                    helper,
-                    Either::Immediate(Immediate::Constant(u6::new(0b000001))),
-                );
-
-                if condition.kind == ConditionalKind::NotEq {
-                    self.not(helper).and(
-                        helper,
-                        Either::Immediate(Immediate::Constant(u6::new(0b000001))),
-                    );
-                }
             }
             _ => todo!(),
         }
 
-        // At this point helper should contain zero if we are going to jump else one
-        self.rol(helper).or(MEM_REGISTER, Either::Register(helper));
+        // If the value in MEM_REGISTER is zero then jump.
+
+        let helper = free_register!(MEM_REGISTER).unwrap();
+        self.zero(helper);
+        // Distribute the value until we have [0b000000 | 0b111111]
+        (0..6).into_iter().for_each(|_| {
+            self.or(helper, Either::Register(MEM_REGISTER))
+                .ror(MEM_REGISTER);
+        });
+
+        // Flip if we are using one of the negated conditions.
+        if condition.kind == ConditionalKind::NotEq {
+            self.not(helper);
+        }
+
+        // Mask into [0 | 3]
+        self.and(
+            helper,
+            Either::Immediate(Immediate::Constant(u6::new(0b000011))),
+        );
+
+        // Add that to our label and jump to the new address.
         let label = unique_label();
         self.add(
-            MEM_REGISTER,
+            helper,
             Either::Immediate(Immediate::LabelP1(label.clone(), Span::new(0, 0))),
         )
         .pc(AddressTuple(
@@ -292,11 +297,13 @@ impl IrGenerator {
             Either::Register(helper),
         ));
 
-        if self.next_address & u12::new(0b111111) == u12::new(0b111111) {
-            // skip 6-bit overflow
+        // Adding a six bit tuple is complicated and expensive.
+        // Solution: skip the 6-bit overflow.
+        while self.next_address & u12::new(0b111111) > u12::new(0b111111 - 3) {
             self.nop();
         }
 
+        // If we added three to this label we will skip the last instruction otherwise we will jump to the target address
         self.lab(label, Span::new(0, 0)).unwrap().pc(address)
     }
 
