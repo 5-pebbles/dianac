@@ -138,8 +138,10 @@ pub fn emulation_repl() -> Result<(), Error> {
                     state.consume_instruction();
                 }
 
-                let (p0, p1) = state.program_counter.as_tuple();
-                println!("Reached Halt {:0>6b}-{:0>6b}", p0, p1);
+                println!(
+                    "Reached Halt {}",
+                    tuple_as_usize(state.program_counter.as_tuple())
+                );
             }
             "step" | "s" => {
                 state.consume_instruction();
