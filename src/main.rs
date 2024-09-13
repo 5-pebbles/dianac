@@ -26,6 +26,7 @@ use errors::Error;
 use crate::{
     compilation::{compile_to_binary, DiagLevel},
     emulation::InteractiveState,
+    utils::tuple_as_usize,
 };
 
 /// An emulator, compiler, and interpreter for the Diana Compiled Language
@@ -97,6 +98,8 @@ macro_rules! about {
             " step one instruction\n",
             bold!("- interpret | i <dcl_source> [offset]:"),
             " compile and store at the given offset\n",
+            bold!("- dump | d:"),
+            " print the interactive state\n",
             bold!("- help | h:"),
             " print help\n",
             bold!("- quit | q:"),
@@ -157,6 +160,18 @@ pub fn emulation_repl() -> Result<(), Error> {
                 let machine_code = display_compilation(Path::new(dcl_file), false)?.unwrap();
 
                 state.memory.store_array(offset, &machine_code)
+            }
+            "dump" | "d" => {
+                println!("{}", bold!("Registers:"));
+                println!(
+                    "- A = {:0>6b}\n- B = {:0>6b}\n- C = {:0>6b}",
+                    state.a, state.b, state.c
+                );
+                println!(
+                    "{} {}",
+                    bold!("Program Counter:"),
+                    tuple_as_usize(state.program_counter.as_tuple())
+                )
             }
             "help" | "h" => println!(about!(commands)),
             "quit" | "q" => break,
