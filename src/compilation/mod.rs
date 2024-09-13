@@ -21,8 +21,9 @@ pub mod generator;
 pub mod lexer;
 pub mod parser;
 
-pub use diagnostic::{DiagKind, DiagLevel, Diagnostic};
+pub use diagnostic::{DiagLevel, Diagnostic};
 
+#[allow(dead_code)]
 pub struct CompileInfo {
     pub duration: Duration,
     pub symbol_table: HashMap<Arc<str>, u12>,
