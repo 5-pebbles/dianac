@@ -1,9 +1,11 @@
 mod halt_and_nop;
 mod lab_and_pc;
-mod lih;
 mod nor_and_or;
 mod nxor_and_xor;
 mod shift_and_rotate;
+
+mod bitwise_logic;
+mod lih;
 
 /// Quickly create compact tests!
 #[macro_export]
