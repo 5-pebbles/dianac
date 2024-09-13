@@ -292,6 +292,7 @@ These keywords simply load the corresponding address from the right and left rot
 |---------|-------------|-------|
 | `PC [add]`  | set program counter to `[add]` | - |
 | `LAB [idn]` | define a label pointing to the next statement | - |
+| `LIH [con] [add]` | conditional jump if true | All registers will be clobbered, and LIH stands for logic is hard. |
 
 ### Miscellaneous Keywords
 
