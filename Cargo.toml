@@ -1,6 +1,6 @@
 [package]
 name = "dianac"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "An emulator, compiler, and interpreter for the Diana Compiled Language"
 
