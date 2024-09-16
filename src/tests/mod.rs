@@ -19,7 +19,7 @@ macro_rules! test_builder {
         #[test]
         fn $test_name() {
             let mut state = InteractiveState::new();
-            let machine_code_result = compile_to_binary($source);
+            let machine_code_result = compile_to_binary($source, u12::new(0));
             assert_eq!(machine_code_result.diagnostics.len(), 0);
             state.memory.store_array(0, &machine_code_result.binary);
             let mutation_closure = |$mutation_state: &mut InteractiveState| $mutation_closure;

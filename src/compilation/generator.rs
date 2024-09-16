@@ -58,6 +58,14 @@ pub struct IrGenerator {
 }
 
 impl IrGenerator {
+    pub fn new(offset: u12) -> Self {
+        Self {
+            ir: Vec::default(),
+            next_address: offset,
+            symbol_table: HashMap::default(),
+        }
+    }
+
     pub fn push(&mut self, value: Ir) -> &mut Self {
         self.next_address += value.len();
         self.ir.push(value);
@@ -416,10 +424,6 @@ impl IrGenerator {
 
 impl Default for IrGenerator {
     fn default() -> Self {
-        Self {
-            ir: Vec::default(),
-            next_address: u12::new(0),
-            symbol_table: HashMap::default(),
-        }
+        Self::new(u12::default())
     }
 }

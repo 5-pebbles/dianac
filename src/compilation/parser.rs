@@ -50,8 +50,12 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(raw: &'a str) -> Self {
-        Self::from(raw)
+    pub fn new(raw: &'a str, offset: u12) -> Self {
+        Self {
+            cursor: Cursor::new(raw),
+            raw,
+            ir: IrGenerator::new(offset),
+        }
     }
 
     pub fn parse(mut self) -> ParseResult {
@@ -434,10 +438,6 @@ impl<'a> Parser<'a> {
 
 impl<'a> From<&'a str> for Parser<'a> {
     fn from(value: &'a str) -> Self {
-        Self {
-            cursor: Cursor::from(value),
-            raw: value,
-            ir: IrGenerator::default(),
-        }
+        Self::new(value, u12::default())
     }
 }

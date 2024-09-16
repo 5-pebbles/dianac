@@ -1,4 +1,4 @@
-use arbitrary_int::u6;
+use arbitrary_int::{u12, u6};
 use clap::{Parser as ArgParser, Subcommand};
 use colored::Colorize;
 use std::{
@@ -47,6 +47,8 @@ enum Command {
         source: PathBuf,
         /// File path to compiled binary
         destination: Option<PathBuf>,
+        /// Memory offset for the compiled code (in bytes)
+        offset: usize,
         /// Suppress all non-fatal diagnostics
         #[arg(short, long)]
         quiet: bool,
@@ -61,9 +63,10 @@ fn main() -> Result<(), Error> {
         Command::Compile {
             source,
             destination,
+            offset,
             quiet,
         } => {
-            if let Some(instructions) = display_compilation(&source, quiet)? {
+            if let Some(instructions) = display_compilation(&source, offset, quiet)? {
                 fs::write(
                     destination.unwrap_or_else(|| source.with_extension("")),
                     instructions.iter().map(|i| i.value()).collect::<Vec<u8>>(),
@@ -157,7 +160,8 @@ pub fn emulation_repl() -> Result<(), Error> {
                     0
                 };
 
-                let machine_code = display_compilation(Path::new(dcl_file), false)?.unwrap();
+                let machine_code =
+                    display_compilation(Path::new(dcl_file), offset, false)?.unwrap();
 
                 state.memory.store_array(offset, &machine_code)
             }
@@ -183,7 +187,11 @@ pub fn emulation_repl() -> Result<(), Error> {
     Ok(())
 }
 
-fn display_compilation(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, std::io::Error> {
+fn display_compilation(
+    source: &Path,
+    offset: usize,
+    quiet: bool,
+) -> Result<Option<Vec<u6>>, std::io::Error> {
     let absolute = fs::canonicalize(source)?.to_string_lossy().into_owned();
     println!("   {} `{absolute}`", "Compiling".green().bold(),);
 
@@ -191,7 +199,7 @@ fn display_compilation(source: &Path, quiet: bool) -> Result<Option<Vec<u6>>, st
     // This makes parsing case independent; the original code is saved for diagnostics
     let code_uppercase = code.to_uppercase();
 
-    let compile_info = compile_to_binary(&code_uppercase);
+    let compile_info = compile_to_binary(&code_uppercase, u12::new(offset as u16));
 
     let log_level = quiet
         .then_some(DiagLevel::Fatal)

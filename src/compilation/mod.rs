@@ -34,12 +34,12 @@ pub struct CompileInfo {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-pub fn compile_to_binary(source: &str) -> CompileInfo {
+pub fn compile_to_binary(source: &str, offset: u12) -> CompileInfo {
     let start_time = Instant::now();
 
     let tokens = Cursor::new(&source).tokenize().collect();
 
-    let parser_result = Parser::new(&source).parse();
+    let parser_result = Parser::new(&source, offset).parse();
     let (ir, symbol_table, mut diagnostics) = (
         parser_result.ir,
         parser_result.symbol_table,
