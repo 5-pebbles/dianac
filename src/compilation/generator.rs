@@ -261,8 +261,7 @@ impl IrGenerator {
     }
 
     pub fn lih(&mut self, condition: Conditional, address: AddressTuple) -> &mut Self {
-        // This code is absolute dog shit, but I want to do something else, and I have enough tests to confirm it's all working...
-        // TODO ┗(▀̿ĺ̯▀̿ ̿)┓       ●~*
+        // This code was once absolute dog shit; it's fixed now, but I am leaving the emoticons: ┗(▀̿ĺ̯▀̿ ̿)┓  ●~*
         match condition.kind {
             ConditionalKind::Eq | ConditionalKind::NotEq => {
                 if matches!(condition.left, Either::Register(left) if left == MEM_REGISTER) {
@@ -272,76 +271,34 @@ impl IrGenerator {
                         .xor(MEM_REGISTER, condition.left)
                 };
             }
-            ref kind => {
-                let helper = match kind {
-                    ConditionalKind::LessEq | ConditionalKind::Greater => {
-                        let condition = Conditional {
-                            left: condition.right,
-                            kind: condition.kind.clone(),
-                            right: condition.left,
-                        };
-                        let helper = if let Either::Register(left_register) = condition.left {
-                            if left_register == MEM_REGISTER {
-                                let free_register = match condition.right {
-                                    Either::Register(right_register) => {
-                                        free_register!(right_register, MEM_REGISTER).unwrap()
-                                    }
-                                    _ => free_register!(MEM_REGISTER).unwrap(),
-                                };
+            ConditionalKind::GreaterEq
+            | ConditionalKind::Less
+            | ConditionalKind::LessEq
+            | ConditionalKind::Greater => {
+                let (left, right) = if matches!(
+                    condition.kind,
+                    ConditionalKind::LessEq | ConditionalKind::Greater
+                ) {
+                    (condition.right, condition.left)
+                } else {
+                    (condition.left, condition.right)
+                };
 
-                                self.mov(free_register, condition.left)
-                                    .mov(MEM_REGISTER, condition.right);
-                                free_register
-                            } else {
-                                self.mov(MEM_REGISTER, condition.right);
-
-                                left_register
-                            }
-                        } else {
-                            let free_register = match condition.right {
-                                Either::Register(register) => {
-                                    free_register!(register, MEM_REGISTER).unwrap()
-                                }
-                                _ => free_register!(MEM_REGISTER).unwrap(),
-                            };
-                            self.mov(free_register, condition.left)
-                                .mov(MEM_REGISTER, condition.right);
-                            free_register
-                        };
-                        helper
+                let helper = match (left, right.clone()) {
+                    (Either::Register(left_reg), right) if left_reg != MEM_REGISTER => {
+                        self.mov(MEM_REGISTER, right);
+                        left_reg
                     }
-                    ConditionalKind::GreaterEq | ConditionalKind::Less => {
-                        let helper = if let Either::Register(left_register) = condition.left {
-                            if left_register == MEM_REGISTER {
-                                let free_register = match condition.right {
-                                    Either::Register(right_register) => {
-                                        free_register!(right_register, MEM_REGISTER).unwrap()
-                                    }
-                                    _ => free_register!(MEM_REGISTER).unwrap(),
-                                };
-
-                                self.mov(free_register, condition.left)
-                                    .mov(MEM_REGISTER, condition.right);
-                                free_register
-                            } else {
-                                self.mov(MEM_REGISTER, condition.right);
-
-                                left_register
-                            }
-                        } else {
-                            let free_register = match condition.right {
-                                Either::Register(register) => {
-                                    free_register!(register, MEM_REGISTER).unwrap()
-                                }
-                                _ => free_register!(MEM_REGISTER).unwrap(),
-                            };
-                            self.mov(free_register, condition.left)
-                                .mov(MEM_REGISTER, condition.right);
-                            free_register
-                        };
-                        helper
+                    (left, Either::Register(right_reg)) => {
+                        let free_register = free_register!(right_reg, MEM_REGISTER).unwrap();
+                        self.mov(free_register, left).mov(MEM_REGISTER, right);
+                        free_register
                     }
-                    _ => unreachable!(),
+                    (left, right) => {
+                        let free_register = free_register!(MEM_REGISTER).unwrap();
+                        self.mov(free_register, left).mov(MEM_REGISTER, right);
+                        free_register
+                    }
                 };
                 // The following operation is (helper <= MEM_REGISTER):
 
