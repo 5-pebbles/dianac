@@ -14,15 +14,12 @@ pub struct InteractiveState {
 
 impl InteractiveState {
     pub fn new() -> Self {
-        // cloning the program_counter creates a reference to the same data
-        let program_counter = ProgramCounter::default();
-
         Self {
             a: u6::default(),
             b: u6::default(),
             c: u6::default(),
-            memory: Memory::new(program_counter.clone()),
-            program_counter,
+            memory: Memory::new(),
+            program_counter: ProgramCounter::default(),
         }
     }
 
@@ -33,7 +30,9 @@ impl InteractiveState {
     }
 
     pub fn is_halt(&self) -> bool {
-        self.memory.read(self.program_counter.as_tuple()) == u6::new(0b001111)
+        self.memory
+            .read(self.program_counter.as_tuple(), self.program_counter)
+            == u6::new(0b001111)
     }
 
     fn consume_operand(&mut self, operand: Register) -> u6 {
@@ -43,13 +42,16 @@ impl InteractiveState {
             Register::C => self.c,
             Register::Immediate => {
                 self.program_counter.increment();
-                self.memory.read(self.program_counter.as_tuple())
+                self.memory
+                    .read(self.program_counter.as_tuple(), self.program_counter)
             }
         }
     }
 
     pub fn consume_instruction(&mut self) {
-        let raw_value = self.memory.read(self.program_counter.as_tuple());
+        let raw_value = self
+            .memory
+            .read(self.program_counter.as_tuple(), self.program_counter);
 
         // TODO add special instructions
         match raw_value.value() {
@@ -83,7 +85,11 @@ impl InteractiveState {
                 }
             }
             Operation::Pc => self.program_counter.set((operand_one, operand_two)),
-            Operation::Load => self.c = self.memory.read((operand_one, operand_two)),
+            Operation::Load => {
+                self.c = self
+                    .memory
+                    .read((operand_one, operand_two), self.program_counter);
+            }
             Operation::Store => self.memory.write((operand_one, operand_two), self.c),
         }
     }
