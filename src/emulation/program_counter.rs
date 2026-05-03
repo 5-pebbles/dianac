@@ -1,25 +1,26 @@
-use arbitrary_int::{u6, Number};
+use arbitrary_int::{u12, u6};
+use bitbybit::bitfield;
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ProgramCounter(u6, u6);
+#[bitfield(u12)]
+#[derive(Debug, Default)]
+pub struct ProgramCounter {
+    #[bits(6..=11, rw)]
+    high: u6,
+    #[bits(0..=5, rw)]
+    low: u6,
+}
 
 impl ProgramCounter {
     pub fn set(&mut self, value: (u6, u6)) {
-        self.0 = value.0;
-        self.1 = value.1;
+        *self = Self::default().with_high(value.0).with_low(value.1);
     }
 
     pub fn increment(&mut self) {
-        if self.1 < u6::MAX {
-            self.1 += u6::new(1);
-        } else {
-            self.1 = u6::new(0);
-            self.0 = self.0.wrapping_add(u6::new(1));
-        }
+        *self = Self::new_with_raw_value(self.raw_value().wrapping_add(u12::new(1)));
     }
 
     pub fn as_tuple(&self) -> (u6, u6) {
-        (self.0, self.1)
+        (self.high(), self.low())
     }
 }
 
