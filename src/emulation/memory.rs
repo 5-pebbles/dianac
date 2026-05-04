@@ -21,12 +21,11 @@ impl Memory {
 
     pub fn read(&self, address: (u6, u6), pc: ProgramCounter) -> u6 {
         let as_usize = tuple_as_usize(address);
-        let (pc_low, pc_high) = pc.as_tuple();
 
         match as_usize {
             0x000..=0xF3D => self.ram[as_usize],
-            0xF3E => pc_low,
-            0xF3F => pc_high,
+            0xF3E => pc.low(),
+            0xF3F => pc.high(),
             0xF80..=0xFBF => address.1.rotate_left(1),
             0xFC0..=0xFFF => address.1.rotate_right(1),
             _ => unreachable!(),
