@@ -47,3 +47,21 @@ test_builder!(
         assert_eq!(state.program_counter.as_tuple(), (u6::new(0), u6::new(1)));
     }
 );
+
+#[test]
+fn hand_assembled_nor() {
+    let mut state = InteractiveState::new();
+    state.a = u6::new(0b101010); // garbage
+
+    state.memory.store_array(0, &[
+        u6::new(0b000011), // NOR A Immediate
+        u6::new(0b111111), //   0b111111 (zero A)
+        u6::new(0b000011), // NOR A Immediate
+        u6::new(0b010101), //   0b010101 (load complement)
+        u6::new(0b000000), // NOR A A   (NOT)
+        u6::new(0b001111), // HLT
+    ]);
+
+    state.consume_until_halt();
+    assert_eq!(state.a, u6::new(0b010101));
+}
